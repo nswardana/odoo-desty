@@ -1,7 +1,7 @@
 require("dotenv").config();
 const { Worker } = require("bullmq");
 const IORedis = require("ioredis");
-const { processMarketplaceOrder } = require("./services/orderService");
+const marketplaceService = require("./services/marketplaceService");
 
 const connection = new IORedis({
   host: "127.0.0.1",
@@ -18,10 +18,17 @@ const worker = new Worker(
   async job => {
     console.log("📦 Job received:", job.data);
 
-    await processMarketplaceOrder(
-      job.data.source,
-      job.data.order
-    );
+    try {
+      await marketplaceService.processOrder(
+        job.data.source,
+        job.data.order
+      );
+      
+      console.log("✅ Order processed successfully");
+    } catch (error) {
+      console.error("❌ Order processing failed:", error.message);
+      throw error;
+    }
   },
   { connection }
 );
@@ -34,4 +41,5 @@ worker.on("failed", (job, err) => {
   console.error("❌ Job failed:", err.message);
 });
 
-console.log("🚀 Worker running...");
+console.log("🚀 Marketplace Worker running...");
+console.log("📊 Supported marketplaces:", marketplaceService.getSupportedMarketplaces().join(", "));
