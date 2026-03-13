@@ -5,17 +5,7 @@ const { orderQueue } = require("./queue");
 const tokenService = require("./services/tokenService");
 
 // Import webhook controllers
-const shopeeController = require("./controllers/webhookShopee");
-const tokopediaController = require("./controllers/webhookTokopedia");
-const lazadaController = require("./controllers/webhookLazada");
-const tiktokController = require("./controllers/webhookTiktok");
 const destyController = require("./controllers/webhookDesty");
-
-// Import TikTok OAuth controller
-const tiktokAuthController = require("./controllers/tiktokAuthController");
-
-// Import Tokopedia OAuth controller
-const tokopediaAuthController = require("./controllers/tokopediaAuthController");
 
 // Import Desty OAuth controller
 const destyAuthController = require("./controllers/destyAuthController");
@@ -71,25 +61,6 @@ app.get("/health", (req, res) => {
 
 // === WEBHOOK ENDPOINTS ===
 
-// Shopee webhooks
-app.post("/webhook/shopee", shopeeController.handleWebhook.bind(shopeeController));
-app.post("/webhook/shopee/sync", shopeeController.syncProducts.bind(shopeeController));
-app.get("/webhook/shopee/mappings", shopeeController.getMappings.bind(shopeeController));
-
-// Tokopedia webhooks
-app.post("/webhook/tokopedia", tokopediaController.handleWebhook.bind(tokopediaController));
-app.post("/webhook/tokopedia/sync", tokopediaController.syncProducts.bind(tokopediaController));
-app.get("/webhook/tokopedia/mappings", tokopediaController.getMappings.bind(tokopediaController));
-
-// Lazada webhooks
-app.post("/webhook/lazada", lazadaController.handleWebhook.bind(lazadaController));
-app.post("/webhook/lazada/sync", lazadaController.syncProducts.bind(lazadaController));
-app.get("/webhook/lazada/mappings", lazadaController.getMappings.bind(lazadaController));
-
-// TikTok webhooks
-app.post("/webhook/tiktok", tiktokController.handleWebhook.bind(tiktokController));
-app.post("/webhook/tiktok/sync", tiktokController.syncProducts.bind(tiktokController));
-app.get("/webhook/tiktok/mappings", tiktokController.getMappings.bind(tiktokController));
 
 // Desty webhooks
 app.post("/webhook/desty", destyController.handleWebhook.bind(destyController));
@@ -98,27 +69,6 @@ app.get("/webhook/desty/mappings", destyController.getMappings.bind(destyControl
 app.get("/webhook/desty/test", destyController.testWebhook.bind(destyController));
 app.get("/webhook/desty/health", destyController.healthCheck.bind(destyController));
 
-// === TIKTOK OAUTH ENDPOINTS ===
-
-// TikTok OAuth flow
-app.get("/tiktok/authorize", tiktokAuthController.authorize.bind(tiktokAuthController));
-app.get("/tiktok/callback", tiktokAuthController.callback.bind(tiktokAuthController));
-app.post("/tiktok/token", tiktokAuthController.refreshToken.bind(tiktokAuthController));
-
-// TikTok auth management
-app.get("/tiktok/status", tiktokAuthController.getAuthStatus.bind(tiktokAuthController));
-app.post("/tiktok/revoke", tiktokAuthController.revokeToken.bind(tiktokAuthController));
-
-// === TOKOPEDIA OAUTH ENDPOINTS ===
-
-// Tokopedia OAuth flow
-app.get("/tokopedia/authorize", tokopediaAuthController.authorize.bind(tokopediaAuthController));
-app.get("/tokopedia/callback", tokopediaAuthController.callback.bind(tokopediaAuthController));
-app.post("/tokopedia/token", tokopediaAuthController.refreshToken.bind(tokopediaAuthController));
-
-// Tokopedia auth management
-app.get("/tokopedia/status", tokopediaAuthController.getAuthStatus.bind(tokopediaAuthController));
-app.post("/tokopedia/revoke", tokopediaAuthController.revokeToken.bind(tokopediaAuthController));
 
 // === DESTY OAUTH ENDPOINTS ===
 
@@ -507,11 +457,6 @@ app.get("/api/errors/dashboard", errorManagementController.getDashboardData.bind
 
 // Utility endpoints
 app.post("/api/errors/test-logging", errorManagementController.testErrorLogging.bind(errorManagementController));
-
-// === LEGACY ENDPOINTS (for backward compatibility) ===
-
-app.post("/webhook/shopee", shopeeController.handleWebhook.bind(shopeeController));
-app.post("/webhook/tokopedia", tokopediaController.handleWebhook.bind(tokopediaController));
 
 // Start server
 app.listen(process.env.PORT || 3000, () => {
