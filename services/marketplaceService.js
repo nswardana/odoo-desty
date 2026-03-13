@@ -25,6 +25,11 @@ class MarketplaceService {
         name: 'TikTok Shop',
         webhookPath: '/webhook/tiktok',
         orderProcessor: this.processTikTokOrder.bind(this)
+      },
+      'desty': {
+        name: 'Desty',
+        webhookPath: '/webhook/desty',
+        orderProcessor: this.processDestyOrder.bind(this)
       }
     };
   }
@@ -59,7 +64,8 @@ class MarketplaceService {
       'shopee': 'KEDURUS',
       'tokopedia': 'GUBENG', 
       'lazada': 'PUCANG',
-      'tiktok': 'KEDURUS'
+      'tiktok': 'KEDURUS',
+      'desty': 'KEDURUS'
     };
     return defaults[marketplace] || 'KEDURUS';
   }
@@ -87,6 +93,69 @@ class MarketplaceService {
     console.log('🛒 Processing TikTok order...');
     const standardized = this.standardizeOrderData('tiktok', rawOrder);
     return await processMarketplaceOrder('tiktok', standardized);
+  }
+
+  async processDestyOrder(rawOrder) {
+    console.log('🛒 Processing Desty order...');
+    
+    // Use enhanced Desty processing
+    const destyOdooService = require('./destyOdooService');
+    const destyValidationService = require('./destyValidationService');
+    
+    try {
+      // Step 1: Comprehensive validation
+      const validationResult = await destyValidationService.validateCompleteOrder(rawOrder);
+      
+      if (!validationResult.isValid) {
+        throw new Error(`Order validation failed: ${validationResult.errors.join(', ')}`);
+      }
+
+      // Log warnings if any
+      if (validationResult.warnings.length > 0) {
+        console.log(`⚠️ Order warnings for ${rawOrder.order_sn}:`, validationResult.warnings);
+      }
+
+      // Step 2: Check/update customer
+      const customer = await destyOdooService.createDestyCustomer(rawOrder);
+
+      // Step 3: Validate products and stock
+      const productValidation = await destyOdooService.validateDestyProducts(rawOrder.items);
+      
+      if (!productValidation.canProceed) {
+        throw new Error(`Product validation failed: ${productValidation.errors.join(', ')}`);
+      }
+
+      // Log product warnings
+      if (productValidation.warnings.length > 0) {
+        console.log(`⚠️ Product warnings for ${rawOrder.order_sn}:`, productValidation.warnings);
+      }
+
+      // Step 4: Create/update order in Odoo
+      const odooOrder = await destyOdooService.createDestyOrder(rawOrder, customer, productValidation.validatedItems);
+
+      // Step 5: Handle order confirmation based on payment status
+      if (rawOrder.payment_status === 'paid') {
+        await destyOdooService.confirmDestyOrder(odooOrder.id);
+      }
+
+      // Step 6: Create shipment if ready to ship
+      if (rawOrder.shipping_status === 'ready_to_ship') {
+        await destyOdooService.createDestyShipment(odooOrder.id, rawOrder);
+      }
+
+      console.log(`✅ Desty order processed successfully: ${rawOrder.order_sn}`);
+      
+      return {
+        success: true,
+        odooOrderId: odooOrder.id,
+        customerId: customer.id,
+        validationResult: validationResult.summary
+      };
+
+    } catch (error) {
+      console.error(`❌ Error processing Desty order ${rawOrder.order_sn}:`, error.message);
+      throw error;
+    }
   }
 
   // Public method to process any marketplace order

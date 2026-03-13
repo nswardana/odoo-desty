@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+const session = require('express-session');
 const { orderQueue } = require("./queue");
 const tokenService = require("./services/tokenService");
 
@@ -8,6 +9,22 @@ const shopeeController = require("./controllers/webhookShopee");
 const tokopediaController = require("./controllers/webhookTokopedia");
 const lazadaController = require("./controllers/webhookLazada");
 const tiktokController = require("./controllers/webhookTiktok");
+const destyController = require("./controllers/webhookDesty");
+
+// Import TikTok OAuth controller
+const tiktokAuthController = require("./controllers/tiktokAuthController");
+
+// Import Tokopedia OAuth controller
+const tokopediaAuthController = require("./controllers/tokopediaAuthController");
+
+// Import Desty OAuth controller
+const destyAuthController = require("./controllers/destyAuthController");
+
+// Import Desty Product controller
+const destyProductController = require("./controllers/destyProductController");
+
+// Import Desty Order controller
+const destyOrderController = require("./controllers/destyOrderController");
 
 // Import auth controller
 const authController = require("./controllers/authController");
@@ -30,12 +47,24 @@ const errorManagementController = require("./controllers/errorManagementControll
 const app = express();
 app.use(express.json());
 
+// Session configuration for OAuth state management
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-session-secret-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 10 * 60 * 1000 // 10 minutes
+  }
+}));
+
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.json({ 
     status: "OK", 
     timestamp: new Date().toISOString(),
-    supportedMarketplaces: ["shopee", "tokopedia", "lazada", "tiktok"],
+    supportedMarketplaces: ["shopee", "tokopedia", "lazada", "tiktok", "desty"],
     tokensConfigured: tokenService.getMarketplacesWithTokens()
   });
 });
@@ -61,6 +90,81 @@ app.get("/webhook/lazada/mappings", lazadaController.getMappings.bind(lazadaCont
 app.post("/webhook/tiktok", tiktokController.handleWebhook.bind(tiktokController));
 app.post("/webhook/tiktok/sync", tiktokController.syncProducts.bind(tiktokController));
 app.get("/webhook/tiktok/mappings", tiktokController.getMappings.bind(tiktokController));
+
+// Desty webhooks
+app.post("/webhook/desty", destyController.handleWebhook.bind(destyController));
+app.post("/webhook/desty/sync", destyController.syncProducts.bind(destyController));
+app.get("/webhook/desty/mappings", destyController.getMappings.bind(destyController));
+app.get("/webhook/desty/test", destyController.testWebhook.bind(destyController));
+app.get("/webhook/desty/health", destyController.healthCheck.bind(destyController));
+
+// === TIKTOK OAUTH ENDPOINTS ===
+
+// TikTok OAuth flow
+app.get("/tiktok/authorize", tiktokAuthController.authorize.bind(tiktokAuthController));
+app.get("/tiktok/callback", tiktokAuthController.callback.bind(tiktokAuthController));
+app.post("/tiktok/token", tiktokAuthController.refreshToken.bind(tiktokAuthController));
+
+// TikTok auth management
+app.get("/tiktok/status", tiktokAuthController.getAuthStatus.bind(tiktokAuthController));
+app.post("/tiktok/revoke", tiktokAuthController.revokeToken.bind(tiktokAuthController));
+
+// === TOKOPEDIA OAUTH ENDPOINTS ===
+
+// Tokopedia OAuth flow
+app.get("/tokopedia/authorize", tokopediaAuthController.authorize.bind(tokopediaAuthController));
+app.get("/tokopedia/callback", tokopediaAuthController.callback.bind(tokopediaAuthController));
+app.post("/tokopedia/token", tokopediaAuthController.refreshToken.bind(tokopediaAuthController));
+
+// Tokopedia auth management
+app.get("/tokopedia/status", tokopediaAuthController.getAuthStatus.bind(tokopediaAuthController));
+app.post("/tokopedia/revoke", tokopediaAuthController.revokeToken.bind(tokopediaAuthController));
+
+// === DESTY OAUTH ENDPOINTS ===
+
+// Desty OAuth flow
+app.get("/desty/authorize", destyAuthController.authorize.bind(destyAuthController));
+app.get("/desty/callback", destyAuthController.callback.bind(destyAuthController));
+app.post("/desty/token", destyAuthController.refreshToken.bind(destyAuthController));
+
+// Desty auth management
+app.get("/desty/status", destyAuthController.getAuthStatus.bind(destyAuthController));
+app.post("/desty/revoke", destyAuthController.revokeToken.bind(destyAuthController));
+
+// Desty API endpoints
+app.get("/desty/stores", destyAuthController.getStores.bind(destyAuthController));
+app.post("/desty/api-key", destyAuthController.generateApiKey.bind(destyAuthController));
+
+// === DESTY PRODUCT ENDPOINTS ===
+
+// Desty Product CRUD operations
+app.get("/desty/products", destyProductController.getProducts.bind(destyProductController));
+app.get("/desty/products/:productId", destyProductController.getProduct.bind(destyProductController));
+app.post("/desty/products", destyProductController.createProduct.bind(destyProductController));
+app.put("/desty/products/:productId", destyProductController.updateProduct.bind(destyProductController));
+app.delete("/desty/products/:productId", destyProductController.deleteProduct.bind(destyProductController));
+
+// Desty Product utilities
+app.post("/desty/products/sync", destyProductController.syncProducts.bind(destyProductController));
+app.get("/desty/products/search", destyProductController.searchProducts.bind(destyProductController));
+app.get("/desty/products/categories", destyProductController.getCategories.bind(destyProductController));
+
+// === DESTY ORDER ENDPOINTS ===
+
+// Desty Order CRUD operations
+app.get("/desty/orders", destyOrderController.getOrders.bind(destyOrderController));
+app.get("/desty/orders/:orderId", destyOrderController.getOrder.bind(destyOrderController));
+app.post("/desty/orders", destyOrderController.createOrder.bind(destyOrderController));
+app.put("/desty/orders/:orderId", destyOrderController.updateOrder.bind(destyOrderController));
+
+// Desty Order actions
+app.post("/desty/orders/:orderId/confirm", destyOrderController.confirmOrder.bind(destyOrderController));
+app.post("/desty/orders/:orderId/cancel", destyOrderController.cancelOrder.bind(destyOrderController));
+app.post("/desty/orders/:orderId/ship", destyOrderController.shipOrder.bind(destyOrderController));
+
+// Desty Order utilities
+app.get("/desty/orders/search", destyOrderController.searchOrders.bind(destyOrderController));
+app.get("/desty/orders/stats", destyOrderController.getOrderStats.bind(destyOrderController));
 
 // === TOKEN MANAGEMENT ENDPOINTS ===
 
