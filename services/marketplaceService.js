@@ -6,26 +6,6 @@ const { processMarketplaceOrder } = require("./orderService");
 class MarketplaceService {
   constructor() {
     this.supportedMarketplaces = {
-      'shopee': {
-        name: 'Shopee',
-        webhookPath: '/webhook/shopee',
-        orderProcessor: this.processShopeeOrder.bind(this)
-      },
-      'tokopedia': {
-        name: 'Tokopedia', 
-        webhookPath: '/webhook/tokopedia',
-        orderProcessor: this.processTokopediaOrder.bind(this)
-      },
-      'lazada': {
-        name: 'Lazada',
-        webhookPath: '/webhook/lazada', 
-        orderProcessor: this.processLazadaOrder.bind(this)
-      },
-      'tiktok': {
-        name: 'TikTok Shop',
-        webhookPath: '/webhook/tiktok',
-        orderProcessor: this.processTikTokOrder.bind(this)
-      },
       'desty': {
         name: 'Desty',
         webhookPath: '/webhook/desty',
@@ -61,40 +41,12 @@ class MarketplaceService {
   getDefaultBranch(marketplace) {
     // Default branch mapping for each marketplace
     const defaults = {
-      'shopee': 'KEDURUS',
-      'tokopedia': 'GUBENG', 
-      'lazada': 'PUCANG',
-      'tiktok': 'KEDURUS',
       'desty': 'KEDURUS'
     };
     return defaults[marketplace] || 'KEDURUS';
   }
 
   // Marketplace-specific processors
-  async processShopeeOrder(rawOrder) {
-    console.log('🛒 Processing Shopee order...');
-    const standardized = this.standardizeOrderData('shopee', rawOrder);
-    return await processMarketplaceOrder('shopee', standardized);
-  }
-
-  async processTokopediaOrder(rawOrder) {
-    console.log('🛒 Processing Tokopedia order...');
-    const standardized = this.standardizeOrderData('tokopedia', rawOrder);
-    return await processMarketplaceOrder('tokopedia', standardized);
-  }
-
-  async processLazadaOrder(rawOrder) {
-    console.log('🛒 Processing Lazada order...');
-    const standardized = this.standardizeOrderData('lazada', rawOrder);
-    return await processMarketplaceOrder('lazada', standardized);
-  }
-
-  async processTikTokOrder(rawOrder) {
-    console.log('🛒 Processing TikTok order...');
-    const standardized = this.standardizeOrderData('tiktok', rawOrder);
-    return await processMarketplaceOrder('tiktok', standardized);
-  }
-
   async processDestyOrder(rawOrder) {
     console.log('🛒 Processing Desty order...');
     

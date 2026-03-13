@@ -100,10 +100,7 @@ class TokenService {
   // Validate token format
   validateTokenFormat(marketplace, token) {
     const formats = {
-      'shopee': /^shp_(test|prod)_\w+$/,
-      'tokopedia': /^tkp_(test|prod)_\w+$/,
-      'lazada': /^lzd_(test|prod)_\w+$/,
-      'tiktok': /^ttk_(test|prod)_\w+$/
+      'desty': /^dst_(test|prod)_\w+$/
     };
 
     const regex = formats[marketplace.toLowerCase()];
@@ -117,10 +114,7 @@ class TokenService {
   // Generate new token
   generateToken(marketplace, environment = 'prod') {
     const prefix = {
-      'shopee': 'shp',
-      'tokopedia': 'tkp', 
-      'lazada': 'lzd',
-      'tiktok': 'ttk'
+      'desty': 'dst'
     };
 
     const marketplacePrefix = prefix[marketplace.toLowerCase()];

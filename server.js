@@ -54,7 +54,7 @@ app.get("/health", (req, res) => {
   res.json({ 
     status: "OK", 
     timestamp: new Date().toISOString(),
-    supportedMarketplaces: ["shopee", "tokopedia", "lazada", "tiktok", "desty"],
+    supportedMarketplaces: ["desty"],
     tokensConfigured: tokenService.getMarketplacesWithTokens()
   });
 });
@@ -211,7 +211,7 @@ app.post("/api/tokens/:marketplace/generate", async (req, res) => {
 // Get all tokens info
 app.get("/api/tokens", (req, res) => {
   try {
-    const marketplaces = ["shopee", "tokopedia", "lazada", "tiktok"];
+    const marketplaces = ["desty"];
     const tokens = {};
     
     for (const marketplace of marketplaces) {
@@ -461,7 +461,7 @@ app.post("/api/errors/test-logging", errorManagementController.testErrorLogging.
 // Start server
 app.listen(process.env.PORT || 3000, () => {
   console.log("🚀 Marketplace Middleware API running on port " + (process.env.PORT || 3000));
-  console.log("📊 Supported marketplaces: shopee, tokopedia, lazada, tiktok");
+  console.log("📊 Supported marketplaces: desty");
   console.log("🔐 Token management endpoints available at /api/tokens");
   console.log("🔄 Token Management Strategy with auto-refresh enabled");
   console.log("🚨 Error Management endpoints available at /api/errors");
@@ -472,8 +472,5 @@ app.listen(process.env.PORT || 3000, () => {
   console.log("🔗 Odoo Integration endpoints available at /api/odoo");
   console.log("🔄 Sync Back to Marketplace endpoints available at /api/sync");
   console.log("📥 Webhook endpoints:");
-  console.log("   POST /webhook/shopee");
-  console.log("   POST /webhook/tokopedia");
-  console.log("   POST /webhook/lazada");
-  console.log("   POST /webhook/tiktok");
+  console.log("   POST /webhook/desty");
 });

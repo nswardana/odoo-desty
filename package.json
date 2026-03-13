@@ -1,6 +1,7 @@
 {
-  "name": "marketplace-bridge",
+  "name": "desty-bridge",
   "version": "1.0.0",
+  "description": "Desty to Odoo v12 integration bridge",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
