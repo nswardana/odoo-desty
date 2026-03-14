@@ -41,5 +41,5 @@ worker.on("failed", (job, err) => {
   console.error("❌ Job failed:", err.message);
 });
 
-console.log("🚀 Marketplace Worker running...");
+console.log("🚀 Desty Worker running...");
 console.log("📊 Supported marketplaces:", marketplaceService.getSupportedMarketplaces().join(", "));

@@ -460,7 +460,7 @@ app.post("/api/errors/test-logging", errorManagementController.testErrorLogging.
 
 // Start server
 app.listen(process.env.PORT || 3000, () => {
-  console.log("🚀 Marketplace Middleware API running on port " + (process.env.PORT || 3000));
+  console.log("🚀 Desty Bridge API running on port " + (process.env.PORT || 3000));
   console.log("📊 Supported marketplaces: desty");
   console.log("🔐 Token management endpoints available at /api/tokens");
   console.log("🔄 Token Management Strategy with auto-refresh enabled");
@@ -469,7 +469,7 @@ app.listen(process.env.PORT || 3000, () => {
   console.log("🔑 Authentication endpoints available at /auth");
   console.log("👥 Account management endpoints available at /api/accounts");
   console.log("🗺️ Mapping Engine endpoints available at /api/mappings");
-  console.log("🔗 Odoo Integration endpoints available at /api/odoo");
+  console.log("🔗 Odoo v15 Integration endpoints available at /api/odoo");
   console.log("🔄 Sync Back to Marketplace endpoints available at /api/sync");
   console.log("📥 Webhook endpoints:");
   console.log("   POST /webhook/desty");

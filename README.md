@@ -1,4 +1,4 @@
-# Desty Bridge (Desty → Odoo v12)
+# Desty Bridge (Desty → Odoo v15)
 
 ## Webhook Endpoints
 
