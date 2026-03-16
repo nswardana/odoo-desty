@@ -6,15 +6,13 @@ const tokenService = require("./services/tokenService");
 
 // Import webhook controllers
 const destyController = require("./controllers/webhookDesty");
+const destyOrderController = require("./controllers/destyOrderController");
 
 // Import Desty OAuth controller
 const destyAuthController = require("./controllers/destyAuthController");
 
 // Import Desty Product controller
 const destyProductController = require("./controllers/destyProductController");
-
-// Import Desty Order controller
-const destyOrderController = require("./controllers/destyOrderController");
 
 // Import auth controller
 const authController = require("./controllers/authController");
@@ -60,7 +58,6 @@ app.get("/health", (req, res) => {
 });
 
 // === WEBHOOK ENDPOINTS ===
-
 
 // Desty webhooks
 app.post("/webhook/desty", destyController.handleWebhook.bind(destyController));
