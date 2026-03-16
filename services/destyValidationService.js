@@ -127,7 +127,7 @@ class DestyValidationService {
   // Check if product exists in Odoo
   async checkProductExists(sku) {
     try {
-      return await this.odooService.odooService.getProductBySKU(sku);
+      return await this.odooService.checkProductSKU(sku);
     } catch (error) {
       console.warn('⚠️ Could not check product existence for', sku, error.message);
       return null;

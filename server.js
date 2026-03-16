@@ -98,20 +98,10 @@ app.get("/desty/products/categories", destyProductController.getCategories.bind(
 
 // === DESTY ORDER ENDPOINTS ===
 
-// Desty Order CRUD operations
+// Desty Order operations
 app.get("/desty/orders", destyOrderController.getOrders.bind(destyOrderController));
 app.get("/desty/orders/:orderId", destyOrderController.getOrder.bind(destyOrderController));
-app.post("/desty/orders", destyOrderController.createOrder.bind(destyOrderController));
-app.put("/desty/orders/:orderId", destyOrderController.updateOrder.bind(destyOrderController));
-
-// Desty Order actions
-app.post("/desty/orders/:orderId/confirm", destyOrderController.confirmOrder.bind(destyOrderController));
-app.post("/desty/orders/:orderId/cancel", destyOrderController.cancelOrder.bind(destyOrderController));
-app.post("/desty/orders/:orderId/ship", destyOrderController.shipOrder.bind(destyOrderController));
-
-// Desty Order utilities
-app.get("/desty/orders/search", destyOrderController.searchOrders.bind(destyOrderController));
-app.get("/desty/orders/stats", destyOrderController.getOrderStats.bind(destyOrderController));
+app.post("/desty/orders/process-to-odoo", destyOrderController.processOrdersToOdoo.bind(destyOrderController));
 
 // === TOKEN MANAGEMENT ENDPOINTS ===
 

@@ -88,11 +88,22 @@ class DestyOdooService {
     }
   }
 
+  // Check product by SKU (delegate to odooIntegrationService)
+  async checkProductSKU(sku) {
+    try {
+      return await this.odooService.checkProductSKU(sku);
+    } catch (error) {
+      console.error('❌ Error checking product SKU:', error.message);
+      throw error;
+    }
+  }
+
   // Create order in Odoo with Desty-specific fields
   async createDestyOrder(order, customer, validatedItems) {
     try {
-      console.log(`📦 Creating Desty order in Odoo: ${order.order_sn}`);
+      console.log(`📋 Creating Desty order in Odoo: ${order.order_sn}`);
 
+      // Create order without lines first
       const orderData = {
         partner_id: customer.id,
         state: 'draft',
@@ -105,33 +116,79 @@ class DestyOdooService {
         note: order.notes,
         origin: `Desty: ${order.order_sn}`,
         client_order_ref: order.order_sn,
-        order_line: await this.createOrderLines(validatedItems),
+        order_lines: [], // Empty initially
         amount_total: order.total_amount,
         amount_tax: this.calculateTax(validatedItems),
         amount_untaxed: this.calculateSubtotal(validatedItems),
         payment_term_id: await this.getPaymentTermId(order.payment_method)
       };
 
+      console.log('📋 Order data being sent to Odoo:', JSON.stringify(orderData, null, 2));
+
+      // Create order first
       const odooOrder = await this.odooService.createSaleOrder(orderData);
+      
+      console.log(`✅ Created empty Odoo order: ${odooOrder.id}`);
+      
+      // Then add order lines separately
+      for (const item of validatedItems) {
+        try {
+          const product = await this.odooService.checkProductSKU(item.sku);
+          
+          if (!product) {
+            throw new Error(`Product not found in Odoo: ${item.sku}`);
+          }
+
+          const orderLine = {
+            order_id: odooOrder.id,
+            product_id: product.id,
+            product_uom_qty: item.qty,
+            price_unit: item.price,
+            name: item.name,
+            customer_lead: 0
+          };
+
+          // Create order line separately
+          await this.odooService.execute('sale.order.line', 'create', [orderLine]);
+          console.log(`✅ Added order line for product: ${item.sku}`);
+        } catch (error) {
+          console.error(`❌ Error creating order line for ${item.sku}:`, error.message);
+          throw error;
+        }
+      }
       
       // Store mapping
       await this.storeOrderMapping(order.order_sn, odooOrder.id, 'desty');
       
-      console.log(`✅ Created Odoo order: ${odooOrder.id}`);
+      console.log(`✅ Created complete Odoo order: ${odooOrder.id}`);
       return odooOrder;
     } catch (error) {
       console.error('❌ Error creating Desty order in Odoo:', error.message);
+      
+      // If it's a field error, inspect the required fields
+      if (error.message && error.message.includes('required_fields')) {
+        console.log('🔍 Field error detected, inspecting sale.order.line fields...');
+        await this.inspectSaleOrderLineFields();
+      }
+      
       throw error;
     }
   }
 
   // Create order lines from validated items
   async createOrderLines(items) {
+    console.log(`📋 Creating order lines for items:`, items);
+    
+    if (!items || !Array.isArray(items)) {
+      console.error('❌ Invalid items for order lines:', items);
+      throw new Error('Items must be an array');
+    }
+    
     const orderLines = [];
     
     for (const item of items) {
       try {
-        const product = await this.odooService.getProductBySKU(item.sku);
+        const product = await this.odooService.checkProductSKU(item.sku);
         
         if (!product) {
           throw new Error(`Product not found in Odoo: ${item.sku}`);
@@ -142,9 +199,7 @@ class DestyOdooService {
           product_uom_qty: item.qty,
           price_unit: item.price,
           name: item.name,
-          discount: 0,
-          tax_id: await this.getTaxIds(product),
-          is_downpayment: false
+          customer_lead: 0
         };
 
         orderLines.push([0, 0, orderLine]);
@@ -163,14 +218,34 @@ class DestyOdooService {
     try {
       // Default to Indonesian VAT (PPN 11%)
       const taxes = await this.odooService.execute('account.tax', 'search_read', [
-        ['type_tax_use', '=', 'sale'],
-        ['amount', '=', 11]
+        [['type_tax_use', '=', 'sale'], ['amount', '=', 11]]
       ], ['id', 'name']);
       
       return taxes.length > 0 ? [taxes[0].id] : [];
     } catch (error) {
       console.warn('⚠️ Could not get tax IDs:', error.message);
       return [];
+    }
+  }
+
+  // Inspect sale.order.line fields to understand required fields
+  async inspectSaleOrderLineFields() {
+    try {
+      console.log('🔍 Inspecting sale.order.line fields...');
+      
+      // Get fields info for sale.order.line model
+      const fields = await this.odooService.execute('sale.order.line', 'fields_get', []);
+      
+      console.log('📋 All sale.order.line fields:');
+      Object.keys(fields).forEach(fieldName => {
+        const field = fields[fieldName];
+        console.log(`  - ${fieldName}: ${field.type} (${field.required ? 'REQUIRED' : 'optional'}) - ${field.string || field.help || 'No description'}`);
+      });
+      
+      return fields;
+    } catch (error) {
+      console.error('❌ Error inspecting sale.order.line fields:', error.message);
+      return null;
     }
   }
 
@@ -248,7 +323,7 @@ class DestyOdooService {
       if (!paymentMethod) return 1; // Default payment term
       
       const terms = await this.odooService.execute('account.payment.term', 'search_read', [
-        ['name', 'ilike', paymentMethod]
+        [['name', 'ilike', paymentMethod]]
       ], ['id', 'name']);
       
       return terms.length > 0 ? terms[0].id : 1;
@@ -372,7 +447,7 @@ class DestyOdooService {
     for (const item of items) {
       try {
         // Check product exists in Odoo
-        const product = await this.odooService.getProductBySKU(item.sku);
+        const product = await this.odooService.checkProductSKU(item.sku);
         
         if (!product) {
           errors.push(`Product not found in Odoo: ${item.sku}`);

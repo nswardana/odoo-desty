@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#echo "🔐 Getting Desty Access Token..."
-
 echo -e "\n\n📦 Testing Local Desty Order API..."
 curl -X POST http://localhost:3000/desty/orders \
   -H "Content-Type: application/json" \

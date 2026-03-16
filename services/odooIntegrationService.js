@@ -250,7 +250,7 @@ class OdooIntegrationService {
         // Get full product data including active and sale_ok status
         const productDetails = await this.execute('product.product', 'read', [
           productIds,
-          ['id', 'name', 'default_code', 'active', 'sale_ok', 'type']
+          ['id', 'name', 'default_code', 'active', 'sale_ok', 'type', 'list_price']
         ]);
         
         console.log(`✅ Product found: ${productDetails[0].id} - ${sku} (active: ${productDetails[0].active}, sale_ok: ${productDetails[0].sale_ok})`);
@@ -262,6 +262,38 @@ class OdooIntegrationService {
     } catch (error) {
       console.error('❌ Error checking product SKU:', error.message);
       throw error;
+    }
+  }
+
+  async checkProductStock(sku) {
+    try {
+      console.log(`🔍 Checking stock for SKU: ${sku}`);
+      
+      // First get the product
+      const product = await this.checkProductSKU(sku);
+      if (!product) {
+        return 0;
+      }
+
+      // Get stock quants for this product
+      const stockQuants = await this.execute('stock.quant', 'search', [
+        [['product_id', '=', product.id], ['location_id.usage', '=', 'internal']]
+      ]);
+
+      let totalStock = 0;
+      if (stockQuants.length > 0) {
+        const quantDetails = await this.execute('stock.quant', 'read', [
+          stockQuants,
+          ['quantity']
+        ]);
+        totalStock = quantDetails.reduce((sum, quant) => sum + quant.quantity, 0);
+      }
+
+      console.log(`📊 Stock for ${sku}: ${totalStock} units`);
+      return totalStock;
+    } catch (error) {
+      console.error('❌ Error checking product stock:', error.message);
+      return 0;
     }
   }
 
