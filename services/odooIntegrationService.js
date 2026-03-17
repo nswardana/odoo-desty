@@ -312,7 +312,14 @@ class OdooIntegrationService {
         notes,
         company_id,
         warehouse_id,
-        pricelist_id
+        pricelist_id,
+        tax,
+        order_sn,
+        platform_name,
+        storeName,
+        buyerNotes,
+        includeTax,
+        paymentMethod
       } = orderData;
 
       console.log(`📦 Creating sale order for partner: ${partner_id}`);
@@ -356,6 +363,40 @@ class OdooIntegrationService {
       if (pricelist_id && typeof pricelist_id === 'number') {
         saleOrderValues.pricelist_id = pricelist_id;
       }
+
+      // Add tax, order_sn, and platform_name from Desty
+      if (tax !== undefined && tax !== null) {
+        saleOrderValues.amount_tax = tax;
+      }
+      
+      if (order_sn) {
+        saleOrderValues.client_order_ref = order_sn;
+      }
+      
+      // Build comprehensive note with all Desty information
+      let orderNote = notes || '';
+      
+      if (platform_name) {
+        orderNote += (orderNote ? '\n' : '') + `Platform: ${platform_name}`;
+      }
+      
+      if (storeName) {
+        orderNote += (orderNote ? '\n' : '') + `Store: ${storeName}`;
+      }
+      
+      if (buyerNotes) {
+        orderNote += (orderNote ? '\n' : '') + `Customer Notes: ${buyerNotes}`;
+      }
+      
+      if (includeTax !== undefined) {
+        orderNote += (orderNote ? '\n' : '') + `Tax Included: ${includeTax}`;
+      }
+      
+      if (paymentMethod) {
+        orderNote += (orderNote ? '\n' : '') + `Payment Method: ${paymentMethod}`;
+      }
+      
+      saleOrderValues.note = orderNote;
 
       // Add marketplace fields (commented out - custom fields don't exist)
       // if (marketplace_order_id) {

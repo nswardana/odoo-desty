@@ -51,7 +51,7 @@ class DestyOrderController {
       // Build request payload according to Desty API spec
       const payload = {
         platform,
-        startDate: startDate || this.getTodayStartTimestamp(),
+        startDate: startDate || this.getLastDayTimestamp(),
         endDate: endDate || Date.now(),
         status,
         pageNumber,
@@ -515,6 +515,20 @@ class DestyOrderController {
       // Process each order
       for (const orderData of ordersToProcess) {
         console.log(`🔄 Processing order: ${orderData.orderSn}`);
+        // Check for duplicate order reference first
+        console.log(`🔄 checkExistingOrder: ${orderData.orderSn}`);
+
+        const existingOrder = await this.checkExistingOrder(orderData.orderSn);
+        if (existingOrder) {
+          console.log(`⚠️ Order ${orderData.orderSn} already exists in Odoo, skipping...`);
+          results.push({
+            orderSn: orderData.orderSn,
+            status: 'skipped',
+            message: 'Order already exists in Odoo'
+          });
+          continue; // Skip to next order
+        }
+        
         const result = await this.processOrderInOdoo(orderData);
         results.push(result);
       }
@@ -546,6 +560,18 @@ class DestyOrderController {
     today.setHours(0, 0, 0, 0);
     return today.getTime();
   }
+  
+  getLastDayTimestamp() {
+  const now = new Date();
+  const yesterdayStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - 1,
+    0, 0, 0, 0
+  );
+  return Math.floor(yesterdayStart.getTime() / 1000);
+  }
+
 }
 
 module.exports = new DestyOrderController();

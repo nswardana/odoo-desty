@@ -118,9 +118,16 @@ class DestyOdooService {
         client_order_ref: order.order_sn,
         order_lines: [], // Empty initially
         amount_total: order.total_amount,
-        amount_tax: this.calculateTax(validatedItems),
+        amount_tax: order.raw_data?.tax || 0, // Use tax from raw_data
         amount_untaxed: this.calculateSubtotal(validatedItems),
-        payment_term_id: await this.getPaymentTermId(order.payment_method)
+        payment_term_id: await this.getPaymentTermId(order.payment_method),
+        // Add additional fields from raw_data
+        order_sn: order.raw_data?.orderSn || order.order_sn,
+        platform_name: order.raw_data?.platformName || order.platform_name,
+        storeName: order.raw_data?.storeName || order.store_name,
+        buyerNotes: order.raw_data?.buyerNotes || order.notes,
+        includeTax: order.raw_data?.includeTax,
+        paymentMethod: order.raw_data?.paymentMethod || order.payment_method
       };
 
       console.log('📋 Order data being sent to Odoo:', JSON.stringify(orderData, null, 2));
@@ -151,6 +158,9 @@ class DestyOdooService {
           // Create order line separately
           await this.odooService.execute('sale.order.line', 'create', [orderLine]);
           console.log(`✅ Added order line for product: ${item.sku}`);
+          console.log(` > product : ${item}`);
+          console.log(` > orderLine : ${orderLine}`);
+
         } catch (error) {
           console.error(`❌ Error creating order line for ${item.sku}:`, error.message);
           throw error;

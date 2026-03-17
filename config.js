@@ -14,8 +14,8 @@ const DESTY_CONFIG = {
   ORDER_ENDPOINT: '/api/order/page',
   ORDER_DETAIL_ENDPOINT: '/api/order/detail',
   DEFAULT_PLATFORM: 'shopee',
-  DEFAULT_STATUS: 'New_Orders',
-  DEFAULT_PAGE_SIZE: 50
+  DEFAULT_STATUS: 'Ready_To_Ship',
+  DEFAULT_PAGE_SIZE: 2
 };
 
 // Order Processing Configuration
