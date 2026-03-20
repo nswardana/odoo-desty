@@ -351,7 +351,7 @@ class OdooIntegrationService {
         date_order: order_date ? new Date(order_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         note: notes,
         platform_name:platform_name,
-        store_Name:storeName,
+        store_name:storeName,
         buyer_notes:buyerNotes,
         client_order_ref:order_sn
       };
