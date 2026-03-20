@@ -353,7 +353,8 @@ class OdooIntegrationService {
         platform_name:platform_name,
         store_name:storeName,
         buyer_notes:buyerNotes,
-        client_order_ref:order_sn
+        client_order_ref:order_sn,
+        order_sn:order_sn
       };
 
       // Add optional fields only if they exist and are valid
