@@ -16,7 +16,8 @@ connection.on("connect", () => {
 const worker = new Worker(
   "orderQueue",
   async job => {
-    console.log("📦 Job received:", job.data);
+    console.log(`📦 Job received::`, JSON.stringify(job.data, null, 2));
+
 
     try {
       await marketplaceService.processOrder(

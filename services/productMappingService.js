@@ -250,6 +250,54 @@ class ProductMappingService {
       throw error;
     }
   }
+
+  // === ORDER MAPPING OPERATIONS ===
+  
+  async saveOrderMapping(orderMappingData) {
+    try {
+      const {
+        marketplace_order_id,
+        odoo_order_id,
+        marketplace,
+        created_at = new Date().toISOString()
+      } = orderMappingData;
+
+      // Validate required fields
+      if (!marketplace_order_id || !odoo_order_id || !marketplace) {
+        throw new Error("Required fields: marketplace_order_id, odoo_order_id, marketplace");
+      }
+
+      // DISABLED: Order mapping table operations
+      console.log(`📝 Order mapping (DISABLED): ${marketplace_order_id} -> ${odoo_order_id} (${marketplace})`);
+      
+      // Return mock mapping object for consistency
+      return {
+        id: `disabled_${Date.now()}`,
+        marketplace_order_id,
+        odoo_order_id,
+        marketplace,
+        created_at,
+        active: true,
+        disabled: true
+      };
+
+    } catch (error) {
+      console.error('❌ Error saving order mapping:', error.message);
+      throw error;
+    }
+  }
+
+  async getOrderMapping(marketplaceOrderId, marketplace) {
+    // DISABLED: Always return null
+    console.log(`📝 Get order mapping (DISABLED): ${marketplaceOrderId} (${marketplace})`);
+    return null;
+  }
+
+  async updateOrderMapping(mappingId, updateData) {
+    // DISABLED: Always return false
+    console.log(`📝 Update order mapping (DISABLED): ${mappingId}`);
+    return false;
+  }
 }
 
 module.exports = new ProductMappingService();

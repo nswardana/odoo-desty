@@ -1,6 +1,7 @@
 // services/destyValidationService.js
 // Desty-specific validation service
 
+const { PAYMENT_METHOD_MAPPING } = require('../config');
 const destyOdooService = require('./destyOdooService');
 
 class DestyValidationService {
@@ -71,6 +72,8 @@ class DestyValidationService {
 
   // Validate order items
   async validateItems(items) {
+
+    console.log(" Validate order items :",JSON.stringify(items,2,null));
     const errors = [];
     const warnings = [];
 
@@ -236,10 +239,16 @@ class DestyValidationService {
       warnings.push(`Unknown payment status: ${order.payment_status}`);
     }
 
-    // Payment method validation
-    const validMethods = ['transfer', 'credit_card', 'e_wallet', 'cash_on_delivery', 'bank_transfer'];
-    if (order.payment_method && !validMethods.includes(order.payment_method)) {
-      warnings.push(`Unknown payment method: ${order.payment_method}`);
+    // Payment method validation using config mapping
+    // Check and map payment method
+    if (order.payment_method) {
+      const normalizedMethod = PAYMENT_METHOD_MAPPING[order.payment_method];
+      if (normalizedMethod) {
+        // Valid payment method found, no warning
+        console.log(`✅ Payment method mapped: ${order.payment_method} -> ${normalizedMethod}`);
+      } else {
+        warnings.push(`Unknown payment method: ${order.payment_method}`);
+      }
     }
 
     // Amount validation
@@ -265,6 +274,9 @@ class DestyValidationService {
     const errors = [];
     const warnings = [];
 
+    console.log(`🔍 Validating shipping for order: ${order.order_sn}`);
+    console.log(`🔍 Shipping address data:`, JSON.stringify(order.shipping_address, null, 2));
+
     // Shipping status validation
     const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
     if (order.shipping_status && !validStatuses.includes(order.shipping_status)) {
@@ -284,6 +296,39 @@ class DestyValidationService {
       }
     }
 
+    // Address validation - check if shipping address exists and has required fields
+    if (order.shipping_address) {
+      const address = order.shipping_address;
+      
+      // Check city
+      if (!address.city || address.city.trim().length < 2) {
+        warnings.push('Shipping city should be provided');
+      } else {
+        console.log(`✅ Shipping city found: ${address.city}`);
+      }
+      
+      // Check postal code
+      if (!address.postal_code || address.postal_code.trim().length === 0) {
+        warnings.push('Shipping postal code not provided');
+      } else {
+        console.log(`✅ Shipping postal code found: ${address.postal_code}`);
+      }
+      
+      // Check full address
+      if (!address.address || address.address.trim().length < 5) {
+        errors.push('Shipping address must be at least 5 characters');
+      } else {
+        console.log(`✅ Shipping address found: ${address.address.substring(0, 50)}...`);
+      }
+      
+      // Check postal code format (Indonesian postal codes are 5 digits)
+      if (address.postal_code && !/^[0-9]{5}$/.test(address.postal_code)) {
+        warnings.push('Indonesian postal code should be 5 digits');
+      }
+    } else {
+      errors.push('Shipping address is required');
+    }
+
     return {
       isValid: errors.length === 0,
       errors,
@@ -294,11 +339,18 @@ class DestyValidationService {
   // Comprehensive order validation
   async validateCompleteOrder(order) {
     console.log(`🔍 Validating complete Desty order: ${order.order_sn}`);
-
     const customerValidation = await this.validateCustomer(order);
+    console.log(`🔍 customerValidation : ${JSON.stringify(customerValidation,null,2)}`);
+
+    console.log(`🔍 itemValidation  : ${JSON.stringify(order.items,null,2)}`);
     const itemValidation = await this.validateItems(order.items);
+    console.log(`🔍 itemValidation Result  : ${JSON.stringify(itemValidation,null,2)}`);
+``
     const paymentValidation = await this.validatePayment(order);
+    console.log(`🔍 itemVapaymentValidationlidation  : ${JSON.stringify(paymentValidation,null,2)}`);
+    
     const shippingValidation = await this.validateShipping(order);
+    console.log(`🔍 shippingValidation  : ${JSON.stringify(shippingValidation,null,2)}`);
 
     const allErrors = [
       ...customerValidation.errors,
@@ -336,7 +388,8 @@ class DestyValidationService {
     };
 
     console.log(`✅ Order validation completed: ${result.isValid ? 'VALID' : 'INVALID'} (${result.summary.totalErrors} errors, ${result.summary.totalWarnings} warnings)`);
-    
+    console.log(`✅ Vlidation result: (${JSON.stringify(result.summary,null,2)}`);
+
     return result;
   }
 }

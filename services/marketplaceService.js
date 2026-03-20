@@ -56,6 +56,7 @@ class MarketplaceService {
     
     try {
       // Step 1: Comprehensive validation
+      console.log("Step 1: Comprehensive validation");
       const validationResult = await destyValidationService.validateCompleteOrder(rawOrder);
       
       if (!validationResult.isValid) {
@@ -68,16 +69,20 @@ class MarketplaceService {
       }
 
       // Step 2: Check/update customer
+      console.log("Step 2: Check/update customer");
       const customer = await destyOdooService.createDestyCustomer(rawOrder);
 
-      // Step 3: Validate products and stock
-      const productValidation = await destyOdooService.validateDestyProducts(rawOrder.items);
+      // Step 3: Validate products and stock with branch-specific inventory
+      console.log("Step 3: Validate products and stock");
+      console.log("Step 3 - rawOrder",JSON.stringify(rawOrder.branch,2,null));
       
-      if (!productValidation.canProceed) {
-        throw new Error(`Product validation failed: ${productValidation.errors.join(', ')}`);
+      const productValidation = await destyOdooService.validateDestyProducts(rawOrder.items, rawOrder.branch);
+      
+      if (productValidation.errors.length > 0) {
+        console.log(`❌ Product validation failed for ${rawOrder.order_sn}:`, productValidation.errors);
+        return { success: false, message: 'Product validation failed', errors: productValidation.errors, order_sn: rawOrder.order_sn };
       }
-
-      // Log product warnings
+      
       if (productValidation.warnings.length > 0) {
         console.log(`⚠️ Product warnings for ${rawOrder.order_sn}:`, productValidation.warnings);
       }

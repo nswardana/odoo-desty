@@ -152,9 +152,34 @@ class DestyOrderController {
     return errors;
   }
 
-  // Standardize Desty order format for Odoo
+  // Standardize Desty order format for Odoo with enhanced shipping extraction
   standardizeOrder(rawOrder) {
-    return {
+    console.log(`🔍 === standardizeOrder called ===`);
+    console.log(`🔍 rawOrder.orderSn:`, rawOrder.orderSn);
+    console.log(`🔍 rawOrder keys:`, Object.keys(rawOrder));
+    
+    // Extract shipping detail from first item if available
+    const rawShippingDetail = rawOrder.itemList?.[0]?.shippingDetail;
+    
+    console.log(`🔍 Raw shipping detail available:`, !!rawShippingDetail);
+    console.log(`🔍 rawOrder.itemList length:`, rawOrder.itemList?.length || 0);
+    
+    if (rawShippingDetail) {
+      console.log(`🔍 Shipping detail keys:`, Object.keys(rawShippingDetail));
+      console.log(`🔍 Shipping city:`, rawShippingDetail.shippingCity);
+      console.log(`🔍 Shipping postal code:`, rawShippingDetail.shippingPostCode);
+      console.log(`🔍 Shipping address:`, rawShippingDetail.shippingAddress?.substring(0, 100));
+    } else {
+      console.log(`🔍 No shipping detail found in itemList[0]`);
+      if (rawOrder.itemList && rawOrder.itemList.length > 0) {
+        console.log(`🔍 First item keys:`, Object.keys(rawOrder.itemList[0]));
+      }
+    }
+    
+    const standardizedAddress = this.standardizeAddress(rawOrder.customerInfo, rawShippingDetail);
+    console.log(`🔍 Standardized address:`, JSON.stringify(standardizedAddress, null, 2));
+    
+    const result = {
       order_sn: rawOrder.orderSn,
       buyer_username: rawOrder.customerInfo?.name || rawOrder.customer_name || 'Unknown Customer',
       buyer_email: rawOrder.customerInfo?.email || rawOrder.customer_email || '',
@@ -167,15 +192,18 @@ class DestyOrderController {
       payment_status: rawOrder.hasPaid ? 'paid' : 'pending',
       shipping_status: rawOrder.shippedStatus || 'pending',
       total_amount: rawOrder.totalPrice || rawOrder.totalAmount || 0,
-      shipping_address: this.standardizeAddress(rawOrder.customerInfo),
+      shipping_address: standardizedAddress,
       notes: rawOrder.buyerNotes || rawOrder.notes || '',
       payment_method: rawOrder.paymentMethod || rawOrder.payment_method || '',
       shipping_method: rawOrder.shipping_method || '',
-      tracking_number: (rawOrder.trackingNumberList || []).join(', '),
+      tracking_number: (rawOrder.trackingNumberList || []).join(', ') || rawShippingDetail?.trackingNumber || '',
       store_name: rawOrder.storeName,
       platform_name: rawOrder.platformName,
       raw_data: rawOrder
     };
+    
+    console.log(`🔍 === standardizeOrder completed ===`);
+    return result;
   }
 
   // Get default branch based on store name
@@ -197,12 +225,29 @@ class DestyOrderController {
     })) || [];
   }
 
-  // Standardize address format
-  standardizeAddress(address) {
-    if (!address) return null;
+  // Standardize address format with enhanced shipping detail extraction
+  standardizeAddress(address, rawShippingDetail = null) {
+    if (!address && !rawShippingDetail) return null;
+    
+    // If we have raw shipping detail from itemList[0].shippingDetail, use it
+    if (rawShippingDetail) {
+      console.log(`🔍 Using raw shipping detail:`, JSON.stringify(rawShippingDetail, null, 2));
+      
+      return {
+        name: rawShippingDetail.shippingFullName || address?.name || address?.recipient_name || 'Unknown',
+        phone: rawShippingDetail.shippingPhone?.replace(/\*+/g, '') || address?.phone || address?.recipient_phone || '',
+        email: address?.email || address?.recipient_email || '',
+        address: rawShippingDetail.shippingAddress?.replace(/\*+/g, '') || address?.address || address?.street_address || '',
+        city: rawShippingDetail.shippingCity || address?.city || '',
+        province: rawShippingDetail.shippingProvince || address?.province || address?.state || '',
+        postal_code: rawShippingDetail.shippingPostCode || address?.postal_code || address?.zip_code || '',
+        country: rawShippingDetail.shippingCountry || address?.country || 'Indonesia',
+        coordinates: address?.coordinates || null
+      };
+    }
     
     // Handle Desty customerInfo structure
-    if (address.receiverAddress) {
+    if (address && address.receiverAddress) {
       return {
         name: address.receiverName || address.name || address.recipient_name,
         phone: address.receiverPhone || address.phone || address.recipient_phone,
@@ -217,7 +262,7 @@ class DestyOrderController {
     }
     
     // Handle case where only basic address info is available
-    if (address.name && !address.address) {
+    if (address && address.name && !address.address) {
       // Create a minimal address with available info
       return {
         name: address.name,
@@ -234,15 +279,15 @@ class DestyOrderController {
     
     // Fallback to standard address structure
     return {
-      name: address.name || address.recipient_name,
-      phone: address.phone || address.recipient_phone,
-      email: address.email || address.recipient_email,
-      address: address.address || address.street_address,
-      city: address.city,
-      province: address.province || address.state,
-      postal_code: address.postal_code || address.zip_code,
-      country: address.country || 'Indonesia',
-      coordinates: address.coordinates || null
+      name: address?.name || address?.recipient_name || 'Unknown',
+      phone: address?.phone || address?.recipient_phone || '',
+      email: address?.email || address?.recipient_email || '',
+      address: address?.address || address?.street_address || '',
+      city: address?.city || '',
+      province: address?.province || address?.state || '',
+      postal_code: address?.postal_code || address?.zip_code || '',
+      country: address?.country || 'Indonesia',
+      coordinates: address?.coordinates || null
     };
   }
 
@@ -370,6 +415,7 @@ class DestyOrderController {
         throw new Error('Order queue is not properly initialized');
       }
       
+      
       await orderQueue.add('order', {
         source: 'desty',
         order: order,
@@ -377,7 +423,7 @@ class DestyOrderController {
         timestamp: new Date().toISOString(),
         priority: this.calculateOrderPriority(order)
       });
-
+    
       console.log(`✅ Desty order queued for Odoo: ${order.order_sn}`);
       return { success: true, message: 'Order queued for processing', order_sn: order.order_sn };
       
@@ -451,7 +497,7 @@ class DestyOrderController {
       // Build request payload according to Desty API spec (same as getOrders)
       const payload = {
         platform: params.platform,
-        startDate: params.startDate || this.getTodayStartTimestamp(),
+        startDate: params.startDate || this.getLastDayTimestamp(),
         endDate: params.endDate || Date.now(),
         status: params.status,
         pageNumber: params.pageNumber,

@@ -319,7 +319,8 @@ class OdooIntegrationService {
         storeName,
         buyerNotes,
         includeTax,
-        paymentMethod
+        paymentMethod,
+        state
       } = orderData;
 
       console.log(`📦 Creating sale order for partner: ${partner_id}`);
@@ -346,9 +347,13 @@ class OdooIntegrationService {
       const saleOrderValues = {
         partner_id: partner_id,
         order_line: orderLineValues,
-        state: 'draft',
+        state: state,
         date_order: order_date ? new Date(order_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        note: notes
+        note: notes,
+        platform_name:platform_name,
+        store_Name:storeName,
+        buyer_notes:buyerNotes,
+        client_order_ref:order_sn
       };
 
       // Add optional fields only if they exist and are valid
@@ -357,7 +362,9 @@ class OdooIntegrationService {
       }
       
       if (warehouse_id && typeof warehouse_id === 'number') {
-        saleOrderValues.warehouse_id = warehouse_id;
+        
+        //saleOrderValues.warehouse_id = warehouse_id;
+        saleOrderValues.warehouse_id = 1;
       }
       
       if (pricelist_id && typeof pricelist_id === 'number') {
@@ -411,15 +418,17 @@ class OdooIntegrationService {
       //   saleOrderValues.x_shop_id = shop_id;
       // }
 
+
+      console.log('✅ saleOrderValues:', JSON.stringify(saleOrderValues, null, 2));
       const saleOrderId = await this.execute('sale.order', 'create', [saleOrderValues]);
-      
       console.log(`✅ Sale order created: ${saleOrderId}`);
       
-      // Return full sale order data
+      //Return full sale order data
       return await this.execute('sale.order', 'read', [
         [saleOrderId],
         ['id', 'name', 'partner_id', 'state', 'amount_total', 'date_order']
       ]).then(orders => orders[0]);
+    
     } catch (error) {
       console.error('❌ Error creating sale order:', error.message);
       throw error;
