@@ -8,7 +8,20 @@ const STORE_BRANCH_MAPPING = {
   'DIAZ PETSHOP KEDURUS': 'KEDURUS',
   'Diaz Petshop Surabaya': 'PUCANG',
   'Diaz Petshop Gubeng': 'SUMATRA',
-  'DIAZ PETSHOP KEDURUS (MASTRIP)':"KEDURUS"  
+  'DIAZ PETSHOP KEDURUS (MASTRIP)':"KEDURUS",
+  'PusatgrosirPET':'PUCANG',
+  'Java_Petshop':'PUCANG',
+  'Diaz Petshop Gubeng':'SUMATRA',
+  'Durian_Petshop':'SUMATRA',
+  'FLYNN PET (Petshop Surabaya)':'KEDURUS',
+  'Pao Petshop':'KEDURUS',
+  'diazpetshop_surabaya':'PUCANG',
+  'Diaz Petshop':'PUCANG',
+  'Diazpetshop Gubeng':'SUMATRA',
+  'diazpetshop kedurus':'KEDURUS',
+  'BABAH PETSHOP SURABAYA':'PUCANG',
+  'Babah Petshop Surabaya':'PUCANG',
+  'Babah Petshop Surabaya Pusat':'PUCANG'
 };
 
 // Default branch if store not found
