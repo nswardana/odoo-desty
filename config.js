@@ -5,23 +5,23 @@ const STORE_BRANCH_MAPPING = {
   'Gowa Petstore': 'GOWA',
   'Sudiang Pet Store': 'SUDIANG',
   'Petmart Makassar': 'MAKASSAR',
-  'DIAZ PETSHOP KEDURUS': 'SURABAYA2',
-  'Diaz Petshop Surabaya': 'SURABAYA1',
-  'Diaz Petshop Gubeng': 'SURABAYA3',
-  'DIAZ PETSHOP KEDURUS (MASTRIP)':"SURABAYA2"  
+  'DIAZ PETSHOP KEDURUS': 'KEDURUS',
+  'Diaz Petshop Surabaya': 'PUCANG',
+  'Diaz Petshop Gubeng': 'SUMATRA',
+  'DIAZ PETSHOP KEDURUS (MASTRIP)':"KEDURUS"  
 };
 
 // Default branch if store not found
-const DEFAULT_BRANCH = 'SURABAYA1';
+const DEFAULT_BRANCH = 'KEDURUS';
 
 // Branch to Warehouse Mapping Configuration
 const BRANCH_WAREHOUSE_MAPPING = {
   'GOWA': 57, // Gowa Petstore -> Main Warehouse (ID: 1)
   'SUDIANG': 44, // Makassar Branch -> Warehouse 2
   'MAKASSAR': 37, // Jakarta Branch -> Warehouse 3
-  'SURABAYA1': 58, // Pucang Branch -> Stock Location 59
-  'SURABAYA2': 59, // Kedurus Branch -> Stock Location 58
-  'SURABAYA3': 60 // Gubeng Branch -> Stock Location 
+  'PUCANG': 58, // Pucang Branch -> Stock Location 59
+  'KEDURUS': 59, // Kedurus Branch -> Stock Location 58
+  'SUMATRA': 60 // sumatra Branch -> Stock Location 
 
 };
 

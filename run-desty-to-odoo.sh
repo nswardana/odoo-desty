@@ -37,8 +37,18 @@ if [ -z "$response" ]; then
     exit 1
 fi
 
-# 🔹 Print summary
-echo "$response" | jq '.summary' || echo "$response"
+# 🔹 Extract summary values
+total=$(echo "$response" | jq -r '.summary.total // 0')
+success=$(echo "$response" | jq -r '.summary.successful // 0')
+failed=$(echo "$response" | jq -r '.summary.failed // 0')
+
+# 🔹 Print ke console
+echo "Total   : $total"
+echo "Success : $success"
+echo "Failed  : $failed"
+
+# 🔹 Save ke log file
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Total: $total | Success: $success | Failed: $failed" >> sync.log
 
 echo ""
 echo "✅ Test completed!"
