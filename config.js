@@ -2,19 +2,27 @@
 
 // Store to Branch Mapping Configuration
 const STORE_BRANCH_MAPPING = {
-  'Gowa Petstore': 'GOWA'
+  'Gowa Petstore': 'GOWA',
+  'Sudiang Pet Store': 'SUDIANG',
+  'Petmart Makassar': 'MAKASSAR',
+  'DIAZ PETSHOP KEDURUS': 'SURABAYA2',
+  'Diaz Petshop Surabaya': 'SURABAYA1',
+  'Diaz Petshop Gubeng': 'SURABAYA3',
+  'DIAZ PETSHOP KEDURUS (MASTRIP)':"SURABAYA2"  
 };
 
 // Default branch if store not found
-const DEFAULT_BRANCH = 'KEDURUS';
+const DEFAULT_BRANCH = 'SURABAYA1';
 
 // Branch to Warehouse Mapping Configuration
 const BRANCH_WAREHOUSE_MAPPING = {
-  'GOWA': 1, // Gowa Petstore -> Main Warehouse (ID: 1)
-  'MAKASSAR': 2, // Makassar Branch -> Warehouse 2
-  'JAKARTA': 3, // Jakarta Branch -> Warehouse 3
-  'SURABAYA': 4, // Surabaya Branch -> Warehouse 4
-  'BANDUNG': 5 // Bandung Branch -> Warehouse 5
+  'GOWA': 57, // Gowa Petstore -> Main Warehouse (ID: 1)
+  'SUDIANG': 44, // Makassar Branch -> Warehouse 2
+  'MAKASSAR': 37, // Jakarta Branch -> Warehouse 3
+  'SURABAYA1': 58, // Pucang Branch -> Stock Location 59
+  'SURABAYA2': 59, // Kedurus Branch -> Stock Location 58
+  'SURABAYA3': 60 // Gubeng Branch -> Stock Location 
+
 };
 
 // Branch to Stock Location Mapping Configuration
@@ -22,8 +30,9 @@ const BRANCH_STOCK_LOCATION_MAPPING = {
   'GOWA': 8, // Gowa Petstore -> Stock Location 8
   'MAKASSAR': 9, // Makassar Branch -> Stock Location 9
   'JAKARTA': 10, // Jakarta Branch -> Stock Location 10
-  'SURABAYA': 11, // Surabaya Branch -> Stock Location 11
-  'BANDUNG': 12 // Bandung Branch -> Stock Location 12
+  'SURABAYA1': 58, // Pucang Branch -> Stock Location 59
+  'SURABAYA2': 59, // Kedurus Branch -> Stock Location 58
+  'SURABAYA3': 60 // Gubeng Branch -> Stock Location 
 };
 
 // Order State Configuration
@@ -80,9 +89,9 @@ const DESTY_CONFIG = {
   BASE_URL: process.env.DESTY_API_BASE_URL || 'https://api.desty.app',
   ORDER_ENDPOINT: '/api/order/page',
   ORDER_DETAIL_ENDPOINT: '/api/order/detail',
-  DEFAULT_PLATFORM: 'shopee',
+  DEFAULT_PLATFORM: '', //jika di kosongkan semuanya : shopee
   DEFAULT_STATUS: 'Ready_To_Ship',
-  DEFAULT_PAGE_SIZE: 2
+  DEFAULT_PAGE_SIZE: 1
 };
 
 // Order Processing Configuration
@@ -127,3 +136,40 @@ module.exports = {
   VALIDATION_CONFIG,
   TAX_CONFIG
 };
+
+/*
+You are now connected to database "RAP" as user "postgres".
+RAP=# SELECT id, name, code FROM stock_warehouse;
+ id |             name              | code  
+----+-------------------------------+-------
+ 46 | BeePetmart MU 2               | MU-2
+  1 | Gudang ED                     | WHED
+ 57 | Beepetmart Hasanuddin Gowa    | GOWA
+ 50 | Gudang Daeng Ramang           | DRG
+ 37 | BeePetmart Makassar           | MKS
+ 48 | Gudang Penyesuaian            | WHPEN
+ 39 | BeePetmart BTP                | BTP
+ 56 | Beepetmart Perintis NTI       | NTI
+ 40 | BeePetmart Goaria             | GRA
+ 54 | Beepetmart Panaikang          | PNK
+ 44 | BeePetmart Sudiang            | SDNG
+ 38 | BeePetmart Daya               | DAYA
+ 49 | Gudang MES                    | WHMES
+ 41 | BeePetmart Paccerakkang       | PCR
+ 45 | Transit Transfer              | T-TRS
+ 59 | Beepetmart DZ Petshop Kedurus | SKDR
+ 58 | Beepetmart DZ Petshop Pucang  | SPCG
+ 60 | Beepetmart DZ Petshop Gubeng  | GBG
+ 55 | BeePetMart Royal BTP          | ROYAL
+ 51 | Beepetmart Mandai             | MDI
+ 52 | Beepetmart CageStore          | CGS
+ 47 | Beepetmart Abdesir            | ADS
+ 53 | RAP Utama                     | RAPU
+ 43 | BeePetmart MU                 | MU
+ 42 | BeePetmart Antang             | ATG
+ 36 | BeePetmart Daengta            | DT
+(26 rows)
+
+RAP=# 
+
+*/

@@ -128,19 +128,27 @@ class DestyOdooService {
     }
   }
 
-  // Get warehouse ID based on branch name with proper mapping
-  async getWarehouseId(branch) {
-    console.log("getWarehouseId branch",branch);
+  // Get warehouse ID based on store name with proper mapping (Store → Branch → Warehouse)
+  async getWarehouseId(store_name) {
+    console.log("getWarehouseId store_name", store_name);
     try {
-      if (!branch) return 1; // Default warehouse
+      if (!store_name) return 1; // Default warehouse
       
-      console.log(`🔍 Looking for warehouse for branch: ${branch}`);
+      console.log(`🔍 Step 1: Map store to branch for store: ${store_name}`);
       
-      // First try direct mapping from config
+      // Step 1: Map store name to branch
+      const { STORE_BRANCH_MAPPING, DEFAULT_BRANCH } = require('../config');
+      const branch = STORE_BRANCH_MAPPING[store_name] || DEFAULT_BRANCH;
+      
+      console.log(`🔍 Step 2: Branch mapped: ${branch}`);
+      console.log(`🔍 Step 3: Map branch to warehouse for branch: ${branch}`);
+      
+      // Step 2: Map branch to warehouse ID
       if (BRANCH_WAREHOUSE_MAPPING[branch.toUpperCase()]) {
-        console.log(`✅ Found mapped warehouse: ${BRANCH_WAREHOUSE_MAPPING[branch.toUpperCase()]}`);
+        console.log(`✅ Found mapped warehouse: ${branch} → ${BRANCH_WAREHOUSE_MAPPING[branch.toUpperCase()]}`);
         return BRANCH_WAREHOUSE_MAPPING[branch.toUpperCase()];
       }
+      
       console.log(`⚠️ No warehouse found for branch: ${branch}, using default`);
       return 1; // Default warehouse
     } catch (error) {
@@ -204,7 +212,7 @@ class DestyOdooService {
         validity_date: this.calculateValidityDate(order.order_date),
         pricelist_id: 1, // Default pricelist
         fiscal_position_id: await this.getFiscalPosition(order.shipping_address),
-        warehouse_id: await this.getWarehouseId(order.branch),
+        warehouse_id: await this.getWarehouseId(order.store_name),
         team_id: await this.getSalesTeamId(order.shop_id),
         note: order.notes,
         origin: `Desty: ${order.order_sn}`,

@@ -38,12 +38,10 @@ class MarketplaceService {
     }));
   }
 
-  getDefaultBranch(marketplace) {
-    // Default branch mapping for each marketplace
-    const defaults = {
-      'desty': 'KEDURUS'
-    };
-    return defaults[marketplace] || 'KEDURUS';
+  // Get default branch based on store name
+  getDefaultBranch(storeName = '') {
+    // Return mapped branch or default
+    return STORE_BRANCH_MAPPING[storeName] || DEFAULT_BRANCH;
   }
 
   // Marketplace-specific processors

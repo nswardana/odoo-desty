@@ -325,6 +325,7 @@ class OdooIntegrationService {
 
       console.log(`📦 Creating sale order for partner: ${partner_id}`);
 
+
       // Prepare order lines
       const orderLineValues = [];
       for (const line of order_lines) {
@@ -364,8 +365,7 @@ class OdooIntegrationService {
       
       if (warehouse_id && typeof warehouse_id === 'number') {
         
-        //saleOrderValues.warehouse_id = warehouse_id;
-        saleOrderValues.warehouse_id = 1;
+        saleOrderValues.warehouse_id = warehouse_id;
       }
       
       if (pricelist_id && typeof pricelist_id === 'number') {
