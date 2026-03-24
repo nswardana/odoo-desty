@@ -11,6 +11,55 @@ const {
   TAX_CONFIG
 } = require('../config');
 
+// Write product not found log with specific format
+const writeProductNotFoundLog = (order, productSku, productName = '') => {
+  const fs = require('fs');
+  const path = require('path');
+  
+  const timestamp = new Date().toISOString();
+  const platformName = order.platform_name || order.platform || 'desty';
+  const storeName = order.store_name || order.storeName || 'Unknown';
+  const logEntry = `${timestamp} | ${platformName} | ${storeName} | ${order.order_sn || 'Unknown'} | ${productSku} | ${productName}\n`;
+  
+  // Create logs directory if not exists
+  const logsDir = path.join(__dirname, '../logs');
+  if (!fs.existsSync(logsDir)) {
+    fs.mkdirSync(logsDir, { recursive: true });
+  }
+  
+  // Create product not found log file with daily date
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const productLogPath = path.join(logsDir, `product_not_found_${today}.log`);
+  
+  // Check if this product+order combination already exists
+  let shouldAppend = true;
+  if (fs.existsSync(productLogPath)) {
+    const existingContent = fs.readFileSync(productLogPath, 'utf8');
+    const existingLines = existingContent.split('\n').filter(line => line.trim());
+    
+    // Check for duplicate: same order_sn and same product_sku
+    const isDuplicate = existingLines.some(line => {
+      const parts = line.split(' | ');
+      if (parts.length >= 5) {
+        const existingOrderSn = parts[3].trim();
+        const existingProductSku = parts[4].trim();
+        return existingOrderSn === order.order_sn && existingProductSku === productSku;
+      }
+      return false;
+    });
+    
+    if (isDuplicate) {
+      console.log(`📝 Product ${productSku} from order ${order.order_sn} already logged, skipping...`);
+      shouldAppend = false;
+    }
+  }
+  
+  if (shouldAppend) {
+    fs.appendFileSync(productLogPath, logEntry, 'utf8');
+    console.log(`📝 Product not found logged: ${productSku} from order ${order.order_sn}`);
+  }
+};
+
 class DestyOdooService {
   constructor() {
     this.odooService = odooIntegrationService;
@@ -567,7 +616,7 @@ class DestyOdooService {
   }
 
   // Validate products and stock with branch-specific inventory
-  async validateDestyProducts(items, branch = null) {
+  async validateDestyProducts(items, branch = null, order = null) {
     const validatedItems = [];
     const errors = [];
     const warnings = [];
@@ -582,6 +631,12 @@ class DestyOdooService {
         
         if (!product) {
           errors.push(`Product not found in Odoo: ${item.sku}`);
+          
+          // Log to product not found file
+          if (order) {
+            writeProductNotFoundLog(order, item.sku, item.name);
+          }
+          
           continue;
         }
 

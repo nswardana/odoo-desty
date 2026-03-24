@@ -57,6 +57,18 @@ const writeLog = (type, message, data = null) => {
   console.log(message);
 };
 
+// Write product not found log with specific format
+const writeProductNotFoundLog = (order, productSku, productName = '') => {
+  const timestamp = new Date().toISOString();
+  const logEntry = `${timestamp} | ${order.platform || 'desty'} | ${order.storeName || 'Unknown'} | ${order.order_sn || 'Unknown'} | ${productSku} | ${productName}\n`;
+  
+  // Create product not found log file
+  const productLogPath = path.join(logsDir, `product_not_found_${initExecutionId()}.log`);
+  
+  fs.appendFileSync(productLogPath, logEntry, 'utf8');
+  console.log(`📝 Product not found logged: ${productSku} from order ${order.order_sn}`);
+};
+
 class MarketplaceService {
   constructor() {
     this.productMappingService = productMappingService;
@@ -187,7 +199,7 @@ class MarketplaceService {
       writeLog('orders', `📦 Step 3: Validate products and stock for ${orderSn}`);
       console.log("Step 3 - rawOrder",JSON.stringify(rawOrder.branch,2,null));
       
-      const productValidation = await destyOdooService.validateDestyProducts(rawOrder.items, rawOrder.branch);
+      const productValidation = await destyOdooService.validateDestyProducts(rawOrder.items, rawOrder.branch, rawOrder);
       
       if (productValidation.errors.length > 0) {
         const errorMsg = `Product validation failed: ${productValidation.errors.join(', ')}`;
