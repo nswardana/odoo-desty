@@ -1,0 +1,114 @@
+[2026-03-24T01:43:50.435Z] ❌ Product validation failed for 2603240DK9JPXR
+{
+  "errors": [
+    "Product not found in Odoo: B002054"
+  ]
+}
+[2026-03-24T01:43:50.679Z] ❌ Product validation failed for 2603240DA9MFB4
+{
+  "errors": [
+    "Product not found in Odoo: B001578"
+  ]
+}
+[2026-03-24T01:43:51.046Z] ❌ Product validation failed for 2603240D6CMUGT
+{
+  "errors": [
+    "Product not found in Odoo: A001302"
+  ]
+}
+[2026-03-24T01:43:51.416Z] ❌ Product validation failed for 2603240D3G3SFH
+{
+  "errors": [
+    "Product not found in Odoo: B002076"
+  ]
+}
+[2026-03-24T01:43:51.776Z] ❌ Product validation failed for 2603240D14U2M8
+{
+  "errors": [
+    "Product not found in Odoo: B001578"
+  ]
+}
+[2026-03-24T01:43:52.126Z] ❌ Product validation failed for 2603240BY7JBW9
+{
+  "errors": [
+    "Product not found in Odoo: B000724"
+  ]
+}
+[2026-03-24T01:43:52.557Z] ❌ Product validation failed for 2603240A5RVD1U
+{
+  "errors": [
+    "Product not found in Odoo: A001307"
+  ]
+}
+[2026-03-24T01:43:53.038Z] ❌ Product validation failed for 26032409DAT9K1
+{
+  "errors": [
+    "Product not found in Odoo: B002330"
+  ]
+}
+[2026-03-24T01:43:53.435Z] ❌ Product validation failed for 583206502734136651
+{
+  "errors": [
+    "Product not found in Odoo: B003024"
+  ]
+}
+[2026-03-24T01:43:53.805Z] ❌ Product validation failed for 26032407NVYSY3
+{
+  "errors": [
+    "Product not found in Odoo: B001579"
+  ]
+}
+[2026-03-24T01:43:54.548Z] ❌ Product validation failed for 26032407HB2FTS
+{
+  "errors": [
+    "Product not found in Odoo: A000886",
+    "Product not found in Odoo: A001184",
+    "Product not found in Odoo: A001969",
+    "Product not found in Odoo: A001971"
+  ]
+}
+[2026-03-24T01:43:54.946Z] ❌ Product validation failed for 583206366807295772
+{
+  "errors": [
+    "Product not found in Odoo: B001900",
+    "Product not found in Odoo: B001900",
+    "Product not found in Odoo: B001900",
+    "Product not found in Odoo: B001900",
+    "Product not found in Odoo: B001900",
+    "Product not found in Odoo: B001900"
+  ]
+}
+[2026-03-24T01:43:55.266Z] ❌ Product validation failed for 260324063DFRVB
+{
+  "errors": [
+    "Product not found in Odoo: B004083",
+    "Product not found in Odoo: B001578"
+  ]
+}
+[2026-03-24T01:43:55.475Z] ❌ Product validation failed for 260324061AR41R
+{
+  "errors": [
+    "Product not found in Odoo: B002054"
+  ]
+}
+[2026-03-24T01:43:56.074Z] ❌ Product validation failed for 583206072582767777
+{
+  "errors": [
+    "Product not found in Odoo: B002074",
+    "Product not found in Odoo: B002074",
+    "Product not found in Odoo: B002074"
+  ]
+}
+[2026-03-24T01:43:56.335Z] ❌ Product validation failed for 26032403F3GUKC
+{
+  "errors": [
+    "Product not found in Odoo: B001578"
+  ]
+}
+[2026-03-24T01:43:56.755Z] ❌ Product validation failed for 583205943213065550
+{
+  "errors": [
+    "Product not found in Odoo: B002076",
+    "Product not found in Odoo: B002076"
+  ]
+}

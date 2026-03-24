@@ -29,7 +29,7 @@ class DestyOdooService {
         street: order.shipping_address?.address,
         city: order.shipping_address?.city,
         zip: order.shipping_address?.postal_code,
-        country_id: await this.getCountryId(order.shipping_address?.country),
+        country_id: await this.getCountryId(order.shipping_address?.country) || 100, // Default to Indonesia (ID: 100)
         is_company: false,
         customer_rank: 1,
         company_type: 'person'
@@ -40,6 +40,13 @@ class DestyOdooService {
       if (existingCustomer) {
         console.log(`✅ Found existing customer: ${existingCustomer.id}`);
         return existingCustomer;
+      }
+
+      // Double check: Find by name and street
+      const customerByNameAndStreet = await this.findCustomerByNameAndStreet(order.buyer_username, order.shipping_address?.address);
+      if (customerByNameAndStreet) {
+        console.log(`✅ Found existing customer by name and street: ${customerByNameAndStreet.id}`);
+        return customerByNameAndStreet;
       }
 
       const customer = await this.odooService.createPartner(customerData);
@@ -79,10 +86,33 @@ class DestyOdooService {
     }
   }
 
+  // Find customer by name and street (double check)
+  async findCustomerByNameAndStreet(name, street) {
+    try {
+      if (!name || !street) return null;
+      
+      console.log(`🔍 Double check: Searching customer by name "${name}" and street "${street}"`);
+      
+      const domain = [
+        ['name', '=', name],
+        ['street', '=', street],
+        ['active', '=', true]
+      ];
+
+      const customers = await this.odooService.execute('res.partner', 'search_read', [domain, ['id', 'name', 'email', 'phone', 'street']]);
+      return customers.length > 0 ? customers[0] : null;
+    } catch (error) {
+      console.warn('⚠️ Could not find customer by name and street:', error.message);
+      return null;
+    }
+  }
+
   // Get country ID by name
   async getCountryId(countryName) {
     try {
-      if (!countryName || countryName.trim().length === 0) {
+      return 100; // Langsung return to Indonesia
+      
+       if (!countryName || countryName.trim().length === 0) {
         console.log(`🔍 No country name provided, defaulting to Indonesia (ID: 100)`);
         return 100; // Default to Indonesia
       }

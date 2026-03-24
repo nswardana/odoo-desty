@@ -1,0 +1,8 @@
+[2026-03-24T01:34:26.354Z] ⚠️ Product warnings for 2603240DUDX6QP
+[
+  "Price variance detected for A002619 (Odoo: 0, Desty: 4791)"
+]
+[2026-03-24T01:38:14.965Z] ⚠️ Order warnings for 583129176310711985
+[
+  "Order contains more than 10 items"
+]
