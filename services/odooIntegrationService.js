@@ -648,60 +648,101 @@ class OdooIntegrationService {
       return null;
     }
   }
+// === STOCK TRACKING HELPERS ===
 
-  // === STOCK TRACKING HELPERS ===
-  
-  async getOrderStockLevels(saleOrderId) {
-    try {
-      console.log(`📊 Getting stock levels for sale order: ${saleOrderId}`);
-      
-      // Get order lines with product details
-      const orderLines = await this.execute('sale.order.line', 'read', [
-        await this.execute('sale.order.line', 'search', [['order_id', '=', saleOrderId]]),
-        ['id', 'product_id', 'product_uom_qty', 'product_uom']
+async getOrderStockLevels(saleOrderId) {
+  try {
+    console.log(`📊 Getting stock levels for sale order: ${saleOrderId}`);
+
+    // ✅ 1. Get order line IDs (FIX DOMAIN)
+    const orderLineIds = await this.execute('sale.order.line', 'search', [
+      [['order_id', '=', saleOrderId]]
+    ]);
+
+    if (!orderLineIds || orderLineIds.length === 0) {
+      console.log('⚠️ No order lines found');
+      return [];
+    }
+
+    // ✅ 2. Get order line details
+    const orderLines = await this.execute('sale.order.line', 'read', [
+      orderLineIds,
+      ['id', 'product_id', 'product_uom_qty']
+    ]);
+
+    // ✅ 3. Collect all product IDs
+    const productIds = orderLines
+      .map(line => line.product_id?.[0])
+      .filter(Boolean);
+
+    if (productIds.length === 0) {
+      console.log('⚠️ No products found in order lines');
+      return [];
+    }
+
+    // ✅ 4. Get all products in ONE call (OPTIMIZED)
+    const products = await this.execute('product.product', 'read', [
+      productIds,
+      ['id', 'name', 'default_code']
+    ]);
+
+    // Map productId → product
+    const productMap = {};
+    for (const p of products) {
+      productMap[p.id] = p;
+    }
+
+    // ✅ 5. Get all stock quants in ONE call (OPTIMIZED)
+    const quantIds = await this.execute('stock.quant', 'search', [
+      [
+        ['product_id', 'in', productIds],
+        ['location_id.usage', '=', 'internal']
+      ]
+    ]);
+
+    let quantMap = {};
+
+    if (quantIds.length > 0) {
+      const quants = await this.execute('stock.quant', 'read', [
+        quantIds,
+        ['product_id', 'quantity']
       ]);
 
-      const stockLevels = [];
-      
-      for (const line of orderLines) {
-        // Get product details
-        const product = await this.execute('product.product', 'read', [
-          [line.product_id[0]],
-          ['id', 'name', 'default_code']
-        ]).then(products => products[0]);
-
-        // Get current stock quantity
-        const stockQuant = await this.execute('stock.quant', 'search', [
-          [['product_id', '=', line.product_id[0]], ['location_id.usage', '=', 'internal']]
-        ]);
-
-        let totalStock = 0;
-        if (stockQuant.length > 0) {
-          const quants = await this.execute('stock.quant', 'read', [
-            stockQuant,
-            ['quantity']
-          ]);
-          totalStock = quants.reduce((sum, quant) => sum + quant.quantity, 0);
+      // Aggregate stock per product
+      for (const q of quants) {
+        const productId = q.product_id[0];
+        if (!quantMap[productId]) {
+          quantMap[productId] = 0;
         }
-
-        stockLevels.push({
-          product_id: product.id,
-          product_name: product.name,
-          sku: product.default_code,
-          order_quantity: line.product_uom_qty,
-          current_stock: totalStock,
-          available_after_order: totalStock - line.product_uom_qty
-        });
+        quantMap[productId] += q.quantity;
       }
-
-      console.log(`📊 Stock levels retrieved for ${stockLevels.length} products`);
-      return stockLevels;
-    } catch (error) {
-      console.error('❌ Error getting order stock levels:', error.message);
-      throw error;
     }
-  }
 
+    // ✅ 6. Build final result
+    const stockLevels = orderLines.map(line => {
+      const productId = line.product_id?.[0];
+      const product = productMap[productId] || {};
+
+      const currentStock = quantMap[productId] || 0;
+
+      return {
+        product_id: productId,
+        product_name: product.name || 'Unknown',
+        sku: product.default_code || null,
+        order_quantity: line.product_uom_qty,
+        current_stock: currentStock,
+        available_after_order: currentStock - line.product_uom_qty
+      };
+    });
+
+    console.log(`📊 Stock levels retrieved for ${stockLevels.length} products`);
+    return stockLevels;
+
+  } catch (error) {
+    console.error('❌ Error getting order stock levels:', error.message);
+    throw error;
+  }
+}
   calculateStockReduction(stockBefore, stockAfter) {
     try {
       const reductions = [];

@@ -6,7 +6,7 @@ const path = require('path');
 const { processMarketplaceOrder } = require("./orderService");
 const destyOdooService = require("./destyOdooService");
 const productMappingService = require("./productMappingService");
-const { STORE_BRANCH_MAPPING, DEFAULT_BRANCH } = require("../config");
+const { STORE_BRANCH_MAPPING, DEFAULT_BRANCH, ORDER_PROCESSING_CONFIG } = require("../config");
 
 // Create logs directory if not exists
 const logsDir = path.join(__dirname, '../logs');
@@ -214,16 +214,27 @@ class MarketplaceService {
 
       // Step 4: Create order in Odoo
       writeLog('orders', `🛒 Step 4: Creating Odoo order for ${orderSn}`);
-      const odooOrder = await destyOdooService.createDestyOrder(rawOrder, customer, productValidation.validItems);
+      console.log(`🛒 Step 4: Creating Odoo order for ${orderSn}`);
 
+      const odooOrder = await destyOdooService.createDestyOrder(rawOrder, customer, productValidation.validatedItems);
+
+      
+      if (ORDER_PROCESSING_CONFIG.ENABLE_ORDER_CONFIRMATION && rawOrder.payment_status === 'paid') {
       // Step 5: Handle order confirmation based on payment status
-      if (rawOrder.payment_status === 'paid') {
+        console.log(`Step 5: Handle order confirmation based on payment status`);
+        writeLog('orders', `🔄 Step 5: Confirming order ${orderSn} (payment status: ${rawOrder.payment_status})`);
         await destyOdooService.confirmDestyOrder(odooOrder.id);
+      } else if (!ORDER_PROCESSING_CONFIG.ENABLE_ORDER_CONFIRMATION) {
+        writeLog('orders', `⏸️ Step 5: Order confirmation disabled in config for ${orderSn}`);
       }
 
+      if (ORDER_PROCESSING_CONFIG.ENABLE_SHIPMENT_CREATION && rawOrder.shipping_status === 'ready_to_ship') {
       // Step 6: Create shipment if ready to ship
-      if (rawOrder.shipping_status === 'ready_to_ship') {
+      console.log(` Step 6: Create shipment if ready to ship`);
+      writeLog('orders', `📦 Step 6: Creating shipment for ${orderSn} (shipping status: ${rawOrder.shipping_status})`);
         await destyOdooService.createDestyShipment(odooOrder.id, rawOrder);
+      } else if (!ORDER_PROCESSING_CONFIG.ENABLE_SHIPMENT_CREATION) {
+        writeLog('orders', `⏸️ Step 6: Shipment creation disabled in config for ${orderSn}`);
       }
 
       writeLog('success', `✅ Successfully processed order: ${orderSn}`, { 

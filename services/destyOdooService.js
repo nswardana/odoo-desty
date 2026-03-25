@@ -8,7 +8,8 @@ const {
   BRANCH_STOCK_LOCATION_MAPPING, 
   ORDER_STATE_CONFIG,
   ORDER_PROCESSING_CONFIG,
-  TAX_CONFIG
+  TAX_CONFIG,
+  ODOO_DEFAULTS
 } = require('../config');
 
 // Write product not found log with specific format
@@ -290,9 +291,9 @@ class DestyOdooService {
         date_order: order.order_date || new Date().toISOString().split('T')[0],
         validity_date: this.calculateValidityDate(order.order_date),
         pricelist_id: 1, // Default pricelist
-        fiscal_position_id: await this.getFiscalPosition(order.shipping_address),
+        fiscal_position_id: ODOO_DEFAULTS.FISCAL_POSITION_ID, // Hardcoded default to avoid domain error
         warehouse_id: await this.getWarehouseId(order.store_name),
-        team_id: await this.getSalesTeamId(order.shop_id),
+        team_id: ODOO_DEFAULTS.SALES_TEAM_ID, // Hardcoded default to avoid domain error
         note: order.notes,
         origin: `Desty: ${order.order_sn}`,
         client_order_ref: order.order_sn,
@@ -319,11 +320,17 @@ class DestyOdooService {
       
       console.log(`✅ Created empty Odoo order: ${odooOrder.id}`);
       
+      // Debug: Check validatedItems
+      console.log('📋 Debug - validatedItems:', JSON.stringify(validatedItems, null, 2));
+      console.log('📋 Debug - validatedItems length:', validatedItems?.length);
 
       // Then add order lines separately
       for (const item of validatedItems) {
         try {
+          console.log(`🔄 Processing item: ${JSON.stringify(item, null, 2)}`);
+          
           const product = await this.odooService.checkProductSKU(item.sku);
+          console.log(`🔍 Product found: ${JSON.stringify(product, null, 2)}`);
           
           if (!product) {
             throw new Error(`Product not found in Odoo: ${item.sku}`);
@@ -450,7 +457,16 @@ class DestyOdooService {
 
   // Calculate subtotal
   calculateSubtotal(items) {
+    if (!items || !Array.isArray(items)) {
+      console.warn('⚠️ Invalid items for subtotal calculation:', items);
+      return 0;
+    }
+    
     return items.reduce((total, item) => {
+      if (!item || typeof item.price !== 'number' || typeof item.qty !== 'number') {
+        console.warn('⚠️ Invalid item for subtotal calculation:', item);
+        return total;
+      }
       return total + (item.price * item.qty);
     }, 0);
   }
@@ -462,52 +478,10 @@ class DestyOdooService {
     return date.toISOString().split('T')[0];
   }
 
-  // Get fiscal position based on address
-  async getFiscalPosition(address) {
-    try {
-      if (!address || !address.country) return 1; // Default fiscal position
-      
-      const positions = await this.odooService.execute('account.fiscal.position', 'search_read', [
-        ['name', 'ilike', address.country]
-      ], ['id', 'name']);
-      
-      return positions.length > 0 ? positions[0].id : 1;
-    } catch (error) {
-      console.warn('⚠️ Could not get fiscal position:', error.message);
-      return 1;
-    }
-  }
-
-  // Get sales team ID based on shop
-  async getSalesTeamId(shopId) {
-    try {
-      if (!shopId) return 1; // Default sales team
-      
-      const teams = await this.odooService.execute('crm.team', 'search_read', [
-        ['name', 'ilike', shopId]
-      ], ['id', 'name']);
-      
-      return teams.length > 0 ? teams[0].id : 1;
-    } catch (error) {
-      console.warn('⚠️ Could not get sales team ID:', error.message);
-      return 1;
-    }
-  }
-
   // Get payment term ID based on payment method
   async getPaymentTermId(paymentMethod) {
-    try {
-      if (!paymentMethod) return 1; // Default payment term
-      
-      const terms = await this.odooService.execute('account.payment.term', 'search_read', [
-        [['name', 'ilike', paymentMethod]]
-      ], ['id', 'name']);
-      
-      return terms.length > 0 ? terms[0].id : 1;
-    } catch (error) {
-      console.warn('⚠️ Could not get payment term ID:', error.message);
-      return 1;
-    }
+    // Use hardcoded default to avoid search_read errors
+    return ODOO_DEFAULTS.PAYMENT_TERM_ID || 1;
   }
 
   // Store order mapping

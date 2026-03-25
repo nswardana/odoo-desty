@@ -48,6 +48,17 @@ const BRANCH_STOCK_LOCATION_MAPPING = {
   'SURABAYA3': 60 // Gubeng Branch -> Stock Location 
 };
 
+// Odoo Default Values Configuration
+const ODOO_DEFAULTS = {
+  FISCAL_POSITION_ID: 1,    // Default tax position
+  SALES_TEAM_ID: 1,         // Default sales team
+  WAREHOUSE_ID: 1,           // Default warehouse
+  STOCK_LOCATION_ID: 8,        // Default stock location
+  PAYMENT_TERM_ID: 1,         // Default payment term
+  PRICELIST_ID: 1,           // Default pricelist
+  COMPANY_ID: 1               // Default company
+};
+
 // Order State Configuration
 const ORDER_STATE_CONFIG = {
   DEFAULT_ORDER_STATE: 'draft',
@@ -61,7 +72,11 @@ const ORDER_PROCESSING_CONFIG = {
   AUTO_CONFIRM_PAID_ORDERS: true,
   AUTO_CREATE_SHIPMENT: true,
   VALIDATE_STOCK: true,
-  ALLOW_NEGATIVE_STOCK: false
+  ALLOW_NEGATIVE_STOCK: false,
+  
+  // Step Processing Configuration
+  ENABLE_ORDER_CONFIRMATION: false,  // Step 5: Handle order confirmation
+  ENABLE_SHIPMENT_CREATION: false   // Step 6: Create shipment
 };
 
 // Payment Method Mapping Configuration
@@ -137,17 +152,27 @@ const TAX_CONFIG = {
 };
 
 module.exports = {
+  // Store and Branch Configuration
   STORE_BRANCH_MAPPING,
   DEFAULT_BRANCH,
   BRANCH_WAREHOUSE_MAPPING,
   BRANCH_STOCK_LOCATION_MAPPING,
+  
+  // Order Configuration
   ORDER_STATE_CONFIG,
   ORDER_PROCESSING_CONFIG,
   PAYMENT_METHOD_MAPPING,
+  TAX_CONFIG,
+  
+  // Odoo Default Values
+  ODOO_DEFAULTS,
+  
+  // Desty API Configuration
   DESTY_CONFIG,
+  
+  // Order Processing Configuration
   ORDER_CONFIG,
-  VALIDATION_CONFIG,
-  TAX_CONFIG
+  VALIDATION_CONFIG
 };
 
 /*
