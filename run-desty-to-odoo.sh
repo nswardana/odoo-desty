@@ -1,7 +1,9 @@
 #!/bin/bash
 
 echo "🧪 RUN Desty to Odoo Integration"
-echo "=================================="
+echo "============================"
+echo "$(date)"
+echo "============================="
 
 # 🔹 Check jq
 if ! command -v jq &> /dev/null
