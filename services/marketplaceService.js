@@ -217,6 +217,9 @@ class MarketplaceService {
       console.log(`🛒 Step 4: Creating Odoo order for ${orderSn}`);
 
       const odooOrder = await destyOdooService.createDestyOrder(rawOrder, customer, productValidation.validatedItems);
+      console.log(`FINISH: Creating Odoo order for ${orderSn}`);
+      console.log(`rawOrder:`,rawOrder);
+      console.log(`productValidation:`,productValidation.validatedItems);
 
       
       if (ORDER_PROCESSING_CONFIG.ENABLE_ORDER_CONFIRMATION && rawOrder.payment_status === 'paid') {
