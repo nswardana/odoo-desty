@@ -29,12 +29,12 @@ const DEFAULT_BRANCH = 'KEDURUS';
 
 // Branch to Warehouse Mapping Configuration
 const BRANCH_WAREHOUSE_MAPPING = {
-  'GOWA': 57, // Gowa Petstore -> Main Warehouse (ID: 1)
-  'SUDIANG': 44, // Makassar Branch -> Warehouse 2
-  'MAKASSAR': 37, // Jakarta Branch -> Warehouse 3
-  'PUCANG': 58, // Pucang Branch -> Stock Location 59
-  'KEDURUS': 59, // Kedurus Branch -> Stock Location 58
-  'SUMATRA': 60 // sumatra Branch -> Stock Location 
+  'GOWA': 57, // GOWA -> Warehouse (ID: 57)
+  'SUDIANG': 44, // SUDIANG Branch -> Warehouse 44
+  'MAKASSAR': 37, // MAKASSAR Branch -> Warehouse 37
+  'PUCANG': 58, // PuPUCANGcang Branch -> Stock Location 58
+  'KEDURUS': 59, // KEDURUS Branch -> Stock Location 59
+  'SUMATRA': 60 // SUMATRA Branch -> Stock Location 60
 
 };
 
