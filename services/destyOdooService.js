@@ -313,8 +313,6 @@ class DestyOdooService {
 
       console.log('📋 Order data being sent to Odoo:', JSON.stringify(orderData, null, 2));
 
-     
-
       // Create order first
       const odooOrder = await this.odooService.createSaleOrder(orderData);
       

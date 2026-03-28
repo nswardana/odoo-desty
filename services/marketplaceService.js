@@ -197,7 +197,7 @@ class MarketplaceService {
 
       // Step 3: Validate products and stock with branch-specific inventory
       writeLog('orders', `📦 Step 3: Validate products and stock for ${orderSn}`);
-      console.log("Step 3 - rawOrder",JSON.stringify(rawOrder.branch,2,null));
+      console.log("Step 3 - branch",JSON.stringify(rawOrder.branch,2,null));
       
       const productValidation = await destyOdooService.validateDestyProducts(rawOrder.items, rawOrder.branch, rawOrder);
       

@@ -549,81 +549,243 @@ class OdooIntegrationService {
     }
   }
 
-  // === INVOICE MANAGEMENT (Optional) ===
   
-  async createInvoice(saleOrderId) {
-    try {
-      console.log(`🧾 Creating invoice for sale order: ${saleOrderId}`);
-      
-      // Create invoice from sale order
-      const invoiceIds = await this.execute('sale.order', 'action_invoice_create', [[saleOrderId]]);
+// === INVOICE MANAGEMENT (Odoo 15 FIX) ===
+async createInvoice(saleOrderId) {
+  try {
+    console.log(`🧾 Creating invoice for sale order: ${saleOrderId}`);
 
-      if (invoiceIds.length === 0) {
-        console.log(`ℹ️ No invoices created for sale order: ${saleOrderId}`);
-        return null;
-      }
+    // Step 1: Create invoice using correct method
+    const invoiceIds = await this.execute(
+      'sale.order',
+      '_create_invoices',
+      [[saleOrderId]]
+    );
 
-      // Get invoice details
-      const invoices = await this.execute('account.move', 'read', [
-        invoiceIds,
-        ['id', 'name', 'state', 'amount_total', 'invoice_date']
-      ]);
-
-      console.log(`✅ Invoice created: ${invoices[0].id} - ${invoices[0].name}`);
-      return invoices[0];
-    } catch (error) {
-      console.error('❌ Error creating invoice:', error.message);
-      throw error;
+    if (!invoiceIds || invoiceIds.length === 0) {
+      console.log(`ℹ️ No invoices created for sale order: ${saleOrderId}`);
+      return null;
     }
+
+    // Step 2: Get invoice details
+    const invoices = await this.execute('account.move', 'read', [
+      invoiceIds,
+      ['id', 'name', 'state', 'amount_total', 'invoice_date', 'move_type']
+    ]);
+
+    console.log(
+      `✅ Invoice created: ${invoices[0].id} - ${invoices[0].name}`
+    );
+
+    return invoices[0];
+
+  } catch (error) {
+    console.error('❌ Error creating invoice:', error.message);
+    throw error;
   }
+}
 
-  async updateInvoiceStatus(invoiceId, status) {
-    try {
-      console.log(`🧾 Updating invoice status: ${invoiceId} -> ${status}`);
-      
-      const statusMapping = {
-        'draft': 'draft',
-        'posted': 'posted',
-        'paid': 'paid',
-        'cancel': 'cancel'
-      };
+// === UPDATE INVOICE STATUS (FIXED ODOO 15) ===
+async updateInvoiceStatus(invoiceId, status) {
+  try {
+    console.log(`🧾 Updating invoice status: ${invoiceId} -> ${status}`);
 
-      const odooStatus = statusMapping[status];
-      if (!odooStatus) {
-        throw new Error(`Invalid invoice status: ${status}`);
-      }
+    switch (status) {
 
-      // Update invoice state based on status
-      switch (odooStatus) {
-        case 'posted':
-          await this.execute('account.move', 'action_post', [[invoiceId]]);
-          break;
-        case 'paid':
-          await this.execute('account.move', 'action_post', [[invoiceId]]);
-          // Additional payment processing would go here
-          break;
-        case 'cancel':
-          await this.execute('account.move', 'button_cancel', [[invoiceId]]);
-          break;
-        default:
-          console.log(`ℹ️ Invoice ${invoiceId} status already: ${odooStatus}`);
-      }
+      case 'posted':
+        await this.execute('account.move', 'action_post', [[invoiceId]]);
+        break;
 
-      // Get updated invoice
-      const updatedInvoice = await this.execute('account.move', 'read', [
-        [invoiceId],
-        ['id', 'name', 'state', 'amount_total']
-      ]).then(invoices => invoices[0]);
-      
-      console.log(`✅ Invoice status updated: ${invoiceId} -> ${updatedInvoice.state}`);
-      return updatedInvoice;
-    } catch (error) {
-      console.error('❌ Error updating invoice status:', error.message);
-      throw error;
+      case 'paid':
+        // 1. Ensure invoice is posted
+        await this.execute('account.move', 'action_post', [[invoiceId]]);
+
+        // 2. Get invoice data
+        const invoice = await this.execute('account.move', 'read', [
+          [invoiceId],
+          ['id', 'partner_id', 'amount_total', 'move_type']
+        ]).then(res => res[0]);
+
+        // 3. Create payment
+        const paymentId = await this.execute('account.payment', 'create', [{
+          partner_id: invoice.partner_id[0],
+          amount: invoice.amount_total,
+          payment_type: 'inbound', // customer payment
+          partner_type: 'customer',
+          payment_method_id: 1, // biasanya manual / cash
+        }]);
+
+        // 4. Post payment
+        await this.execute('account.payment', 'action_post', [[paymentId]]);
+
+        // ⚠️ NOTE:
+        // Reconciliation biasanya auto jika setting benar
+        // Kalau tidak, perlu manual reconcile (advanced)
+
+        break;
+
+      case 'cancel':
+        await this.execute('account.move', 'button_cancel', [[invoiceId]]);
+        break;
+
+      default:
+        console.log(`ℹ️ No action needed for status: ${status}`);
     }
-  }
 
-  // === HELPER METHODS ===
+    // Get updated invoice
+    const updatedInvoice = await this.execute('account.move', 'read', [
+      [invoiceId],
+      ['id', 'name', 'state', 'amount_total', 'payment_state']
+    ]).then(res => res[0]);
+
+    console.log(
+      `✅ Invoice updated: ${invoiceId} -> ${updatedInvoice.state} / ${updatedInvoice.payment_state}`
+    );
+
+    return updatedInvoice;
+
+  } catch (error) {
+    console.error('❌ Error updating invoice status:', error.message);
+    throw error;
+  }
+}
+
+// === FULL AUTOMATION: SO → INVOICE → PAYMENT → RECONCILE ===
+
+async createInvoiceAndPayAndReconcile(saleOrderId) {
+  try {
+    console.log(`🚀 FULL FLOW START: SO ${saleOrderId}`);
+
+    // =====================================================
+    // 1. CONFIRM SALES ORDER (if needed)
+    // =====================================================
+    const so = await this.execute('sale.order', 'read', [
+      [saleOrderId],
+      ['id', 'name', 'state', 'partner_id']
+    ]).then(res => res[0]);
+
+    if (so.state !== 'sale') {
+      console.log(`📦 Confirming SO: ${so.name}`);
+      await this.execute('sale.order', 'action_confirm', [[saleOrderId]]);
+    }
+
+    // =====================================================
+    // 2. CREATE INVOICE
+    // =====================================================
+    const invoiceIds = await this.execute(
+      'sale.order',
+      '_create_invoices',
+      [[saleOrderId]]
+    );
+
+    if (!invoiceIds || invoiceIds.length === 0) {
+      throw new Error('❌ No invoice created');
+    }
+
+    const invoiceId = invoiceIds[0];
+    console.log(`🧾 Invoice created: ${invoiceId}`);
+
+    // =====================================================
+    // 3. POST INVOICE
+    // =====================================================
+    await this.execute('account.move', 'action_post', [[invoiceId]]);
+    console.log(`✅ Invoice posted`);
+
+    // =====================================================
+    // 4. GET PAYMENT METHOD
+    // =====================================================
+    const paymentMethod = await this.execute(
+      'account.payment.method',
+      'search_read',
+      [[['payment_type', '=', 'inbound']], ['id', 'name']],
+    ).then(res => res[0]);
+
+    if (!paymentMethod) {
+      throw new Error('❌ No payment method found');
+    }
+
+    // =====================================================
+    // 5. GET INVOICE DATA
+    // =====================================================
+    const invoice = await this.execute('account.move', 'read', [
+      [invoiceId],
+      ['id', 'partner_id', 'amount_total', 'name']
+    ]).then(res => res[0]);
+
+    // =====================================================
+    // 6. CREATE PAYMENT
+    // =====================================================
+    const paymentId = await this.execute('account.payment', 'create', [{
+      partner_id: invoice.partner_id[0],
+      amount: invoice.amount_total,
+      payment_type: 'inbound',
+      partner_type: 'customer',
+      payment_method_id: paymentMethod.id,
+    }]);
+
+    console.log(`💰 Payment created: ${paymentId}`);
+
+    // =====================================================
+    // 7. POST PAYMENT
+    // =====================================================
+    await this.execute('account.payment', 'action_post', [[paymentId]]);
+    console.log(`✅ Payment posted`);
+
+    // =====================================================
+    // 8. RECONCILE
+    // =====================================================
+    // Get invoice receivable lines
+    const invoiceLines = await this.execute('account.move.line', 'search_read', [
+      [
+        ['move_id', '=', invoiceId],
+        ['account_internal_type', '=', 'receivable'],
+        ['reconciled', '=', false]
+      ],
+      ['id']
+    ]);
+
+    // Get payment receivable lines
+    const paymentLines = await this.execute('account.move.line', 'search_read', [
+      [
+        ['payment_id', '=', paymentId],
+        ['account_internal_type', '=', 'receivable'],
+        ['reconciled', '=', false]
+      ],
+      ['id']
+    ]);
+
+    const lineIds = [
+      ...invoiceLines.map(l => l.id),
+      ...paymentLines.map(l => l.id)
+    ];
+
+    if (lineIds.length > 0) {
+      await this.execute('account.move.line', 'reconcile', [lineIds]);
+      console.log(`🔗 Reconciliation done`);
+    } else {
+      console.warn('⚠️ No lines to reconcile');
+    }
+
+    // =====================================================
+    // 9. FINAL CHECK
+    // =====================================================
+    const finalInvoice = await this.execute('account.move', 'read', [
+      [invoiceId],
+      ['id', 'name', 'state', 'payment_state', 'amount_total']
+    ]).then(res => res[0]);
+
+    console.log(
+      `🎯 FINAL STATUS: ${finalInvoice.name} → ${finalInvoice.state} / ${finalInvoice.payment_state}`
+    );
+
+    return finalInvoice;
+
+  } catch (error) {
+    console.error('❌ FULL FLOW ERROR:', error.message);
+    throw error;
+  }
+}
+// === HELPER METHODS ===
   
   async getStateId(stateName) {
     try {
