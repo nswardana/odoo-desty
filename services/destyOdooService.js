@@ -9,7 +9,8 @@ const {
   ORDER_STATE_CONFIG,
   ORDER_PROCESSING_CONFIG,
   TAX_CONFIG,
-  ODOO_DEFAULTS
+  ODOO_DEFAULTS,
+  CUSTOMER_REF_CONFIG
 } = require('../config');
 
 // Write product not found log with specific format
@@ -72,6 +73,12 @@ class DestyOdooService {
     try {
       console.log(`👤 Creating customer for Desty order: ${order.buyer_username}`);
 
+      // Create simple platform reference
+      const platformRef = this.createSimplePlatformRef(order);
+      if (platformRef) {
+        console.log(`🏷️ Platform reference: ${platformRef}`);
+      }
+
       const customerData = {
         name: order.buyer_username,
         email: order.buyer_email,
@@ -84,6 +91,11 @@ class DestyOdooService {
         customer_rank: 1,
         company_type: 'person'
       };
+
+      // Add platform reference if enabled
+      if (platformRef) {
+        customerData.ref = platformRef;
+      }
 
       // Check if customer already exists
       const existingCustomer = await this.findCustomerByEmailOrPhone(order.buyer_email, order.buyer_phone);
@@ -99,6 +111,15 @@ class DestyOdooService {
         return customerByNameAndStreet;
       }
 
+      // Triple check: Find by platform reference
+      if (platformRef) {
+        const customerByRef = await this.findCustomerByRef(platformRef);
+        if (customerByRef) {
+          console.log(`✅ Found existing customer by platform reference: ${customerByRef.id}`);
+          return customerByRef;
+        }
+      }
+
       const customer = await this.odooService.createPartner(customerData);
       console.log(`✅ Created new customer: ${customer.id}`);
       
@@ -107,6 +128,37 @@ class DestyOdooService {
       console.error('❌ Error creating Desty customer:', error.message);
       throw error;
     }
+  }
+
+  // Create simple platform reference (name_platform format)
+  createSimplePlatformRef(order) {
+    if (!CUSTOMER_REF_CONFIG.ENABLE_PLATFORM_REF) {
+      return null;
+    }
+    
+    const customerName = order.buyer_username || 'unknown';
+    const platformName = order.platform_name || order.platform || CUSTOMER_REF_CONFIG.DEFAULT_PLATFORM;
+    
+    // Clean components if enabled
+    const cleanName = CUSTOMER_REF_CONFIG.CLEAN_SPECIAL_CHARS 
+      ? customerName.replace(/[^a-zA-Z0-9]/g, '_')
+      : customerName;
+    
+    const cleanPlatform = CUSTOMER_REF_CONFIG.CLEAN_SPECIAL_CHARS 
+      ? platformName.replace(/[^a-zA-Z0-9]/g, '_')
+      : platformName;
+    
+    // Create reference
+    let ref = `${cleanName}${CUSTOMER_REF_CONFIG.REF_SEPARATOR}${cleanPlatform}`;
+    
+    // Convert to lowercase if enabled
+    if (CUSTOMER_REF_CONFIG.LOWERCASE_REF) {
+      ref = ref.toLowerCase();
+    }
+    
+    // Ensure within character limit
+    const maxLength = CUSTOMER_REF_CONFIG.MAX_REF_LENGTH;
+    return ref.length > maxLength ? ref.substring(0, maxLength - 3) + '...' : ref;
   }
 
   // Find customer by email or phone
@@ -132,6 +184,22 @@ class DestyOdooService {
       return customers.length > 0 ? customers[0] : null;
     } catch (error) {
       console.warn('⚠️ Could not find customer:', error.message);
+      return null;
+    }
+  }
+
+  // Find customer by platform reference
+  async findCustomerByRef(ref) {
+    try {
+      if (!ref) return null;
+      
+      const customers = await this.odooService.execute('res.partner', 'search_read', [
+        [['ref', '=', ref]]
+      ], ['id', 'name', 'email', 'phone', 'ref']);
+      
+      return customers.length > 0 ? customers[0] : null;
+    } catch (error) {
+      console.warn('⚠️ Could not find customer by reference:', error.message);
       return null;
     }
   }

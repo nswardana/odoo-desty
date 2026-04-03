@@ -79,6 +79,17 @@ const ORDER_PROCESSING_CONFIG = {
   ENABLE_SHIPMENT_CREATION: false   // Step 6: Create shipment
 };
 
+// Customer Platform Reference Configuration
+const CUSTOMER_REF_CONFIG = {
+  ENABLE_PLATFORM_REF: true,
+  REF_FORMAT: 'name_platform',
+  REF_SEPARATOR: '_',
+  LOWERCASE_REF: true,
+  CLEAN_SPECIAL_CHARS: true,
+  MAX_REF_LENGTH: 64,
+  DEFAULT_PLATFORM: 'desty'
+};
+
 // Payment Method Mapping Configuration
 const PAYMENT_METHOD_MAPPING = {
   // E-wallet methods
@@ -169,6 +180,9 @@ module.exports = {
   
   // Desty API Configuration
   DESTY_CONFIG,
+  
+  // Customer Platform Reference Configuration
+  CUSTOMER_REF_CONFIG,
   
   // Order Processing Configuration
   ORDER_CONFIG,
