@@ -72,6 +72,8 @@ class DestyOdooService {
   async createDestyCustomer(order) {
     try {
       console.log(`👤 Creating customer for Desty order: ${order.buyer_username}`);
+      console.log(`🔍 Debug: Email "${order.buyer_email}", Phone "${order.buyer_phone}"`);
+      console.log(`🔍 Debug: Address "${order.shipping_address?.address}"`);
 
       // Create simple platform reference
       const platformRef = this.createSimplePlatformRef(order);
@@ -79,6 +81,49 @@ class DestyOdooService {
         console.log(`🏷️ Platform reference: ${platformRef}`);
       }
 
+      // Triple check: Find by platform reference FIRST
+      if (platformRef) {
+        console.log(`🔍 Check 1: Searching by platform reference "${platformRef}"`);
+        const customerByRef = await this.findCustomerByRef(platformRef);
+        if (customerByRef) {
+          console.log(`✅ Found existing customer by platform reference: ${customerByRef.id}`);
+          return customerByRef;
+        } else {
+          console.log(`❌ No customer found by platform reference`);
+        }
+      }
+
+      // Check if customer already exists by email/phone
+      console.log(`🔍 Check 2: Searching by email/phone`);
+      const existingCustomer = await this.findCustomerByEmailOrPhone(order.buyer_email, order.buyer_phone);
+      if (existingCustomer) {
+        console.log(`✅ Found existing customer: ${existingCustomer.id}`);
+        return existingCustomer;
+      } else {
+        console.log(`❌ No customer found by email/phone`);
+      }
+
+      // Double check: Find by name and street
+      console.log(`🔍 Check 3: Searching by name and street`);
+      const customerByNameAndStreet = await this.findCustomerByNameAndStreet(order.buyer_username, order.shipping_address?.address);
+      if (customerByNameAndStreet) {
+        console.log(`✅ Found existing customer by name and street: ${customerByNameAndStreet.id}`);
+        return customerByNameAndStreet;
+      } else {
+        console.log(`❌ No customer found by name and street`);
+      }
+
+      // Fallback check: Find by name only (prevent duplicates)
+      console.log(`🔍 Check 4: Searching by name only (fallback)`);
+      const customerByNameOnly = await this.findCustomerByNameOnly(order.buyer_username);
+      if (customerByNameOnly) {
+        console.log(`✅ Found existing customer by name only: ${customerByNameOnly.id}`);
+        return customerByNameOnly;
+      } else {
+        console.log(`❌ No customer found by name only`);
+      }
+
+      // Create customer data (only if no existing customer found)
       const customerData = {
         name: order.buyer_username,
         email: order.buyer_email,
@@ -95,29 +140,6 @@ class DestyOdooService {
       // Add platform reference if enabled
       if (platformRef) {
         customerData.ref = platformRef;
-      }
-
-      // Check if customer already exists
-      const existingCustomer = await this.findCustomerByEmailOrPhone(order.buyer_email, order.buyer_phone);
-      if (existingCustomer) {
-        console.log(`✅ Found existing customer: ${existingCustomer.id}`);
-        return existingCustomer;
-      }
-
-      // Double check: Find by name and street
-      const customerByNameAndStreet = await this.findCustomerByNameAndStreet(order.buyer_username, order.shipping_address?.address);
-      if (customerByNameAndStreet) {
-        console.log(`✅ Found existing customer by name and street: ${customerByNameAndStreet.id}`);
-        return customerByNameAndStreet;
-      }
-
-      // Triple check: Find by platform reference
-      if (platformRef) {
-        const customerByRef = await this.findCustomerByRef(platformRef);
-        if (customerByRef) {
-          console.log(`✅ Found existing customer by platform reference: ${customerByRef.id}`);
-          return customerByRef;
-        }
       }
 
       const customer = await this.odooService.createPartner(customerData);
@@ -184,6 +206,24 @@ class DestyOdooService {
       return customers.length > 0 ? customers[0] : null;
     } catch (error) {
       console.warn('⚠️ Could not find customer:', error.message);
+      return null;
+    }
+  }
+
+  // Find customer by name only (fallback for duplicate prevention)
+  async findCustomerByNameOnly(name) {
+    try {
+      if (!name) return null;
+      
+      console.log(`🔍 Fallback: Searching customer by name only "${name}"`);
+      
+      const customers = await this.odooService.execute('res.partner', 'search_read', [
+        [['name', '=', name]]
+      ], ['id', 'name', 'email', 'phone', 'ref']);
+      
+      return customers.length > 0 ? customers[0] : null;
+    } catch (error) {
+      console.warn('⚠️ Could not find customer by name only:', error.message);
       return null;
     }
   }
