@@ -1,53 +1,50 @@
 module.exports = {
   apps: [
+    // =========================
+    // SBY (SUDAH ADA)
+    // =========================
     {
       name: "sby-desty-api",
       script: "server.js",
       cwd: "/home/odoo/odoo-desty-sby",
-
-      // ⚠️ HARUS number, bukan string
       instances: 2,
       exec_mode: "cluster",
-
-      watch: false,
-
-      autorestart: true,
-      max_restarts: 10,
-      restart_delay: 5000,
-
-      // 🔥 dinaikkan biar tidak sering restart
-      max_memory_restart: "500M",
-
-      out_file: "./logs/api-out.log",
-      error_file: "./logs/api-error.log",
-      log_date_format: "YYYY-MM-DD HH:mm:ss",
-      merge_logs: true,
-
       env: {
-        NODE_ENV: "production"
+        NODE_ENV: "production",
+        PORT: 5000
       }
     },
     {
       name: "sby-desty-worker",
       script: "worker.js",
       cwd: "/home/odoo/odoo-desty-sby",
-
       instances: 1,
       exec_mode: "fork",
+      env: {
+        NODE_ENV: "production"
+      }
+    },
 
-      watch: false,
-
-      autorestart: true,
-      max_restarts: 10,
-      restart_delay: 5000,
-
-      max_memory_restart: "500M",
-
-      out_file: "./logs/worker-out.log",
-      error_file: "./logs/worker-error.log",
-      log_date_format: "YYYY-MM-DD HH:mm:ss",
-      merge_logs: true,
-
+    // =========================
+    // NON-SBY (BARU)
+    // =========================
+    {
+      name: "desty-api",
+      script: "server.js",
+      cwd: "/home/odoo/odoo-desty",
+      instances: 2,
+      exec_mode: "cluster",
+      env: {
+        NODE_ENV: "production",
+        PORT: 7000 // 🔥 beda port
+      }
+    },
+    {
+      name: "desty-worker",
+      script: "worker.js",
+      cwd: "/home/odoo/odoo-desty",
+      instances: 1,
+      exec_mode: "fork",
       env: {
         NODE_ENV: "production"
       }
