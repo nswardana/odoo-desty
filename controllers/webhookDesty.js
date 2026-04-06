@@ -2,7 +2,9 @@
 // Desty API webhook controller with signature validation
 
 const crypto = require('crypto');
-const { orderQueue } = require('../queue');
+const queueModule = require('../queue');
+const { orderQueue } = queueModule;
+const { addJobWithDedlication } = queueModule;
 const productMappingService = require('../services/productMappingService');
 
 class DestyWebhookController {
@@ -243,13 +245,31 @@ class DestyWebhookController {
       }
       
       // Add to queue with enhanced metadata
-      await orderQueue.add('order', {
-        source: 'desty',
-        order: order,
-        webhook_event: payload.event_type || payload.event,
-        timestamp: new Date().toISOString(),
-        priority: this.calculateOrderPriority(order)
-      });
+      let job;
+      if (addJobWithDeduplication && typeof addJobWithDeduplication === 'function') {
+        console.log(`✅ Using addJobWithDeduplication for webhook order: ${order.order_sn}`);
+        job = await addJobWithDeduplication('order', {
+          source: 'desty',
+          order: order,
+          webhook_event: payload.event_type || payload.event,
+          timestamp: new Date().toISOString(),
+          priority: this.calculateOrderPriority(order)
+        });
+      } else {
+        console.log(`⚠️ addJobWithDeduplication not available, using fallback for webhook order: ${order.order_sn}`);
+        job = await orderQueue.add('order', {
+          source: 'desty',
+          order: order,
+          webhook_event: payload.event_type || payload.event,
+          timestamp: new Date().toISOString(),
+          priority: this.calculateOrderPriority(order)
+        });
+      }
+
+      if (!job) {
+        console.log(`⚠️ Duplicate webhook job prevented for order: ${order.order_sn}`);
+        return;
+      }
 
       console.log(`✅ Desty order queued: ${order.order_sn}`);
     } catch (error) {

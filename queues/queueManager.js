@@ -1,6 +1,9 @@
 // queues/queueManager.js
 // Multi-queue management system for different operation types
 
+const queueModule = require('../queue');
+const { orderQueue } = queueModule;
+const { addJobWithDedlication } = queueModule;
 const { Queue, Worker } = require('bullmq');
 const IORedis = require('ioredis');
 
@@ -127,13 +130,25 @@ class QueueManager {
         throw new Error(`Queue not found: ${queueName}`);
       }
 
-      const job = await queue.add(jobData, options);
+      let job;
       
-      console.log(`📦 Job added to ${queueName}:`, {
-        id: job.id,
-        data: jobData,
-        options: options
-      });
+      // Use deduplication for order queue
+      if (queueName === 'orderQueue' || queueName === 'order') {
+        job = await addJobWithDedlication(queueName, jobData, options);
+      } else {
+        // Use regular add for other queues
+        job = await queue.add(jobData, options);
+      }
+      
+      if (job) {
+        console.log(`📦 Job added to ${queueName}:`, {
+          id: job.id,
+          data: jobData,
+          options: options
+        });
+      } else {
+        console.log(`⚠️ Duplicate job prevented in ${queueName}:`, jobData);
+      }
 
       return job;
     } catch (error) {

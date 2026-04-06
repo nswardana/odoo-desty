@@ -1,7 +1,9 @@
 require("dotenv").config();
 const express = require("express");
 const session = require('express-session');
-const { orderQueue } = require("./queue");
+const queueModule = require("./queue");
+const { orderQueue } = queueModule;
+const { addJobWithDedlication } = queueModule;
 const tokenService = require("./services/tokenService");
 
 // Import webhook controllers

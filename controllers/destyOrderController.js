@@ -2,9 +2,16 @@
 // Desty Order API controller for handling order operations
 
 const axios = require('axios');
-const { orderQueue } = require('../queue');
+const queueModule = require('../queue');
+const { orderQueue } = queueModule;
+const { addJobWithDedlication } = queueModule;
 const { STORE_BRANCH_MAPPING, DEFAULT_BRANCH, DESTY_CONFIG, ORDER_CONFIG, VALIDATION_CONFIG } = require('../config');
 const odooIntegrationService = require('../services/odooIntegrationService');
+
+// Debug: Check if addJobWithDedlication is imported
+console.log('🔍 Debug: queueModule object:', Object.keys(queueModule));
+console.log('🔍 Debug: addJobWithDedlication imported:', typeof addJobWithDedlication);
+console.log('🔍 Debug: addJobWithDedlication function:', addJobWithDedlication ? 'defined' : 'undefined');
 
 class DestyOrderController {
   constructor() {
@@ -410,19 +417,38 @@ class DestyOrderController {
       // Add to queue for processing
       console.log(`📋 Adding order to queue: ${order.order_sn}`);
       console.log(`📋 Queue object:`, typeof orderQueue);
+      console.log(`🔍 Debug: addJobWithDedlication type before usage:`, typeof addJobWithDedlication);
       
       if (!orderQueue || typeof orderQueue.add !== 'function') {
         throw new Error('Order queue is not properly initialized');
       }
       
+      // Use addJobWithDeduplication if available, fallback to orderQueue.add
+      let job;
+      if (addJobWithDedlication && typeof addJobWithDedlication === 'function') {
+        console.log(`✅ Using addJobWithDeduplication for order: ${order.order_sn}`);
+        job = await addJobWithDedlication('order', {
+          source: 'desty',
+          order: order,
+          api_call: true, // Flag to indicate this came from API call, not webhook
+          timestamp: new Date().toISOString(),
+          priority: this.calculateOrderPriority(order)
+        });
+      } else {
+        console.log(`⚠️ addJobWithDeduplication not available, using fallback for order: ${order.order_sn}`);
+        job = await orderQueue.add('order', {
+          source: 'desty',
+          order: order,
+          api_call: true, // Flag to indicate this came from API call, not webhook
+          timestamp: new Date().toISOString(),
+          priority: this.calculateOrderPriority(order)
+        });
+      }
       
-      await orderQueue.add('order', {
-        source: 'desty',
-        order: order,
-        api_call: true, // Flag to indicate this came from API call, not webhook
-        timestamp: new Date().toISOString(),
-        priority: this.calculateOrderPriority(order)
-      });
+      if (!job) {
+        console.log(`⚠️ Duplicate job prevented for order: ${order.order_sn}`);
+        return { success: false, message: 'Duplicate job prevented', order_sn: order.order_sn };
+      }
     
       console.log(`✅ Desty order queued for Odoo: ${order.order_sn}`);
       return { success: true, message: 'Order queued for processing', order_sn: order.order_sn };
